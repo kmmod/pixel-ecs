@@ -13,6 +13,12 @@ export class App {
     this.world = world;
   }
 
+  public async runAsync(): Promise<void> {
+    await this.world.initAsync();
+    this.initialised = true;
+    this.run();
+  }
+
   public run(): void {
     if (!this.initialised) {
       this.world.init();
@@ -38,6 +44,10 @@ export class App {
 
       this.world.update();
       this.animationFrameId = requestAnimationFrame(loop);
+
+      // TODO: Debug tools ideas:
+      // - Log frame time, entity count, system execution times
+      // - Log entities without components
     };
 
     this.animationFrameId = requestAnimationFrame(loop);

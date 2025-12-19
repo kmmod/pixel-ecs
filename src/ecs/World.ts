@@ -15,6 +15,8 @@ import {
   Update,
   type StageToken,
   type System,
+  type SystemEntry,
+  type SystemOptions,
 } from "./Systems";
 import { EventQueue, EventReader, EventWriter } from "./Event";
 
@@ -33,8 +35,7 @@ export class World {
   private queryCache = new Map<string, CachedQuery<Queryable[]>>();
   private resources = new Map<RegistryToken<unknown>, unknown>();
   private eventQueues = new Map<EventToken<unknown>, EventQueue<unknown>>();
-
-  private systems = new Map<StageToken, System[]>();
+  private systems = new Map<StageToken, SystemEntry[]>();
 
   // Systems
   // Stage execution order
@@ -46,9 +47,13 @@ export class World {
   ];
 
   // System registration
-  public addSystem(stage: StageToken, system: System): this {
+  public addSystem(
+    stage: StageToken,
+    system: System,
+    options?: SystemOptions,
+  ): this {
     const systems = this.systems.get(stage) ?? [];
-    systems.push(system);
+    systems.push({ system, conditions: options?.when ?? [] });
     this.systems.set(stage, systems);
     return this;
   }
@@ -56,8 +61,10 @@ export class World {
   // Run systems for a specific stage
   private runStage(stage: StageToken): void {
     const systems = this.systems.get(stage) ?? [];
-    for (const system of systems) {
-      system(this);
+    for (const { system, conditions } of systems) {
+      if (conditions.every((cond) => cond(this))) {
+        system(this);
+      }
     }
   }
 
@@ -150,8 +157,16 @@ export class World {
     }
     this.entities.set(this.entityCounter, componentMap);
 
-    for (const [token, _] of components) {
-      this.invalidateQueriesFor(token);
+    // if there are not components invalidate caches for queries
+    if (components.length === 0) {
+      for (const [_, cached] of this.queryCache) {
+        cached.dirty = true;
+      }
+    } else {
+      // Otherwise only invalidate for the components added
+      for (const [token, _] of components) {
+        this.invalidateQueriesFor(token);
+      }
     }
 
     return this.entityCounter;
