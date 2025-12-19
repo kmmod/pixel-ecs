@@ -22,6 +22,8 @@ import { EventQueue, EventReader, EventWriter } from "./Event";
 import { OnEnter, OnExit, type StateToken, type StateValue } from "./State";
 
 interface EntityOperations {
+  get: <C>(token: RegistryToken<C>) => C | undefined;
+  has: (...types: Queryable[]) => boolean;
   insert: (...components: ComponentTuple[]) => EntityOperations;
   remove: (...types: Queryable[]) => EntityOperations;
   inspect: () => unknown[];
@@ -41,6 +43,14 @@ export class World {
   >();
   private eventQueues = new Map<EventToken<unknown>, EventQueue<unknown>>();
   private systems = new Map<StageToken, SystemEntry[]>();
+
+  private addedThisFrame = new Map<Queryable, Set<number>>();
+  private removedThisFrame = new Map<Queryable, Set<number>>();
+
+  private addedLastFrame = new Map<Queryable, Set<number>>();
+  private removedLastFrame = new Map<Queryable, Set<number>>();
+
+  private pendingDespawns = new Set<number>();
 
   // State management
   // Register a state machine
@@ -131,7 +141,9 @@ export class World {
     this.runStage(PostUpdate);
     this.runStage(Render);
 
+    this.processDespawns();
     this.advanceEventFrames();
+    this.advanceChangeTracking();
   }
 
   // Queries (with caching)
@@ -146,6 +158,13 @@ export class World {
         cached.dirty = true;
       }
     }
+  }
+
+  private advanceChangeTracking(): void {
+    this.addedLastFrame = this.addedThisFrame;
+    this.removedLastFrame = this.removedThisFrame;
+    this.addedThisFrame = new Map();
+    this.removedThisFrame = new Map();
   }
 
   // TODO: implement Query filters: {with, without, optional}
@@ -196,15 +215,66 @@ export class World {
     return results;
   }
 
+  // Query from last frame's changes
+  public queryAdded<T extends Queryable[]>(...types: T): QueryResults<T>[] {
+    // Get component types (exclude Entity)
+    const componentTypes = types.filter((t) => t !== Entity);
+    if (componentTypes.length === 0) return [];
+
+    // Find entities where ANY of the component types were added
+    const addedEntities = new Set<number>();
+    for (const type of componentTypes) {
+      const added = this.addedLastFrame.get(type);
+      if (added) {
+        for (const entity of added) {
+          addedEntities.add(entity);
+        }
+      }
+    }
+
+    if (addedEntities.size === 0) return [];
+
+    return this.query(...types).filter(([entity]) =>
+      addedEntities.has(entity as number),
+    );
+  }
+
+  public queryRemoved(...types: Queryable[]): number[] {
+    const componentTypes = types.filter((t) => t !== Entity);
+    if (componentTypes.length === 0) return [];
+
+    // Find entities where ANY of the component types were removed
+    const removedEntities = new Set<number>();
+    for (const type of componentTypes) {
+      const removed = this.removedLastFrame.get(type);
+      if (removed) {
+        for (const entity of removed) {
+          removedEntities.add(entity);
+        }
+      }
+    }
+
+    return Array.from(removedEntities);
+  }
+
   // Entities
 
+  /**
+   * Spawn a new entity with optional components
+   * Spawn is immediate, systems will see the entity in the same frame
+   */
   public spawn(...components: ComponentTuple[]): number {
-    this.entityCounter++;
+    const entity = ++this.entityCounter;
+
     const componentMap = new Map<Queryable, unknown>();
     for (const [token, value] of components) {
       componentMap.set(token, value);
+      if (!this.addedThisFrame.has(token)) {
+        this.addedThisFrame.set(token, new Set());
+      }
+      this.addedThisFrame.get(token)!.add(entity);
     }
-    this.entities.set(this.entityCounter, componentMap);
+    this.entities.set(entity, componentMap);
 
     // if there are not components invalidate caches for queries
     if (components.length === 0) {
@@ -218,7 +288,7 @@ export class World {
       }
     }
 
-    return this.entityCounter;
+    return entity;
   }
 
   public entity(entity: number): EntityOperations {
@@ -226,13 +296,30 @@ export class World {
     const exists = !!componentMap;
 
     const ops: EntityOperations = {
+      get: <C>(token: RegistryToken<C>): C | undefined => {
+        if (!exists) return undefined;
+        return componentMap.get(token) as C | undefined;
+      },
+
+      has: (...types: Queryable[]): boolean => {
+        if (!exists) return false;
+        return types.every((t) => componentMap.has(t));
+      },
       insert: (...components: ComponentTuple[]) => {
         if (!exists) {
           return ops;
         }
         for (const [type, value] of components) {
-          componentMap?.set(type, value);
+          const isNew = !componentMap.has(type);
+          componentMap.set(type, value);
           this.invalidateQueriesFor(type);
+
+          if (isNew) {
+            if (!this.addedThisFrame.has(type)) {
+              this.addedThisFrame.set(type, new Set());
+            }
+            this.addedThisFrame.get(type)!.add(entity);
+          }
         }
         return ops;
       },
@@ -241,8 +328,15 @@ export class World {
           return ops;
         }
         for (const type of types) {
-          componentMap?.delete(type);
-          this.invalidateQueriesFor(type);
+          if (componentMap.has(type)) {
+            componentMap.delete(type);
+            this.invalidateQueriesFor(type);
+
+            if (!this.removedThisFrame.has(type)) {
+              this.removedThisFrame.set(type, new Set());
+            }
+            this.removedThisFrame.get(type)!.add(entity);
+          }
         }
         return ops;
       },
@@ -250,18 +344,36 @@ export class World {
         if (!exists) return [];
         return Array.from(componentMap.values());
       },
+      /*
+       * Despawn the entity (deferred until end of frame)
+       */
       despawn: () => {
         if (!exists) {
           return;
         }
-        this.entities.delete(entity);
-        componentMap?.forEach((_, type) => {
-          this.invalidateQueriesFor(type);
-        });
+        this.pendingDespawns.add(entity);
       },
     };
 
     return ops;
+  }
+
+  private processDespawns(): void {
+    for (const entity of this.pendingDespawns) {
+      const componentMap = this.entities.get(entity);
+      if (!componentMap) continue;
+
+      componentMap.forEach((_, type) => {
+        if (!this.removedThisFrame.has(type)) {
+          this.removedThisFrame.set(type, new Set());
+        }
+        this.removedThisFrame.get(type)!.add(entity);
+        this.invalidateQueriesFor(type);
+      });
+
+      this.entities.delete(entity);
+    }
+    this.pendingDespawns.clear();
   }
 
   // Resources

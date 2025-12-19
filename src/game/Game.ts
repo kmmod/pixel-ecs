@@ -1,5 +1,5 @@
 import { App } from "../app/App";
-import { resource } from "../ecs/Registry";
+import { component, event, resource } from "../ecs/Registry";
 import { OnEnter, OnExit, state } from "../ecs/State";
 import { Update } from "../ecs/Systems";
 import { World, Entity } from "../ecs/World";
@@ -19,13 +19,30 @@ const Input = resource(() => ({
   right: false,
 }));
 
+const Transform = component((x: number = 0, y: number = 0) => ({
+  x,
+  y,
+}));
+
+const RemoveEvent = event<{ entity: number }>();
+
 const movementSystem = (world: World) => {
-  const entity = world.spawn();
+  const entity = world.spawn(Transform(10, 20));
   console.log("Spawning new Entity: ", entity);
+
+  const removedQuery = world.queryRemoved(Entity, Transform);
+  for (const ent of removedQuery) {
+    console.log("WAS REMOVED", ent);
+  }
 };
 
 const logSystem = (world: World) => {
-  const query = world.query(Entity);
+  const query = world.queryAdded(Entity, Transform);
+
+  for (const [entity, transform] of query) {
+    console.log(entity, transform, "WAS ADDED");
+    world.entity(entity).despawn();
+  }
 
   const state = world.getState(GameState);
 
@@ -48,7 +65,7 @@ export class Game {
     world.insertState(GameState);
     world.insertResource(Input());
 
-    world.spawn();
+    world.spawn(Transform(0, 0));
 
     world.addSystem(Update, movementSystem);
     world.addSystem(Update, logSystem, { when: [lessThanFiveEntities] });
