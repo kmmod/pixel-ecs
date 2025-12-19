@@ -52,7 +52,7 @@ const DeathEvent = event<{ entity: number }>();
 const setupSystem = (world: World) => {
   console.log("Setting up the game");
 
-  world.insertRes(GameState());
+  world.insertResource(GameState());
 
   // Add entities
   const displayProps: DisplayProps = {
@@ -69,7 +69,7 @@ const setupSystem = (world: World) => {
 
 // Move entities based on their velocity
 const movementSystem = (world: World) => {
-  const time = world.getRes(Time);
+  const time = world.getResource(Time);
   if (!time) return;
 
   const query = world.query(Entity, Transform, Velocity);
@@ -84,7 +84,7 @@ const movementSystem = (world: World) => {
 
 // Remove all entities with Transform and Display after 2 seconds
 const removeSystem = (world: World) => {
-  const time = world.getRes(Time);
+  const time = world.getResource(Time);
   const query = world.query(Entity, Transform, Display);
   const deathReader = world.getEventReader(DeathEvent);
 
@@ -108,7 +108,7 @@ const removeSystem = (world: World) => {
 
 // Log entity positions and velocities
 const logSystem = (world: World) => {
-  const time = world.getRes(Time);
+  const time = world.getResource(Time);
   const query = world.query(Entity, Transform, Velocity);
 
   for (const [entity, transform, velocity] of query) {

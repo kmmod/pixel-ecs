@@ -19,6 +19,7 @@ import {
   type SystemOptions,
 } from "./Systems";
 import { EventQueue, EventReader, EventWriter } from "./Event";
+import { OnEnter, OnExit, type StateToken, type StateValue } from "./State";
 
 interface EntityOperations {
   insert: (...components: ComponentTuple[]) => EntityOperations;
@@ -34,27 +35,72 @@ export class World {
   private entities = new Map<number, Map<Queryable, unknown>>();
   private queryCache = new Map<string, CachedQuery<Queryable[]>>();
   private resources = new Map<RegistryToken<unknown>, unknown>();
+  private states = new Map<
+    StateToken<any>,
+    { current: string; previous: string | null; dirty: boolean }
+  >();
   private eventQueues = new Map<EventToken<unknown>, EventQueue<unknown>>();
   private systems = new Map<StageToken, SystemEntry[]>();
 
-  // Systems
-  // Stage execution order
-  private readonly updateStages: StageToken[] = [
-    PreUpdate,
-    Update,
-    PostUpdate,
-    Render,
-  ];
+  // State management
+  // Register a state machine
+  public insertState<T extends string>(
+    token: StateToken<T> & { initial: T },
+  ): this {
+    this.states.set(token, {
+      current: token.initial,
+      previous: null,
+      dirty: true, // Run OnEnter for initial state
+    });
+    return this;
+  }
+
+  // Transition: world.setState(GameState.Running)
+  public setState<T extends string>(stateValue: StateValue<T>): void {
+    const entry = this.states.get(stateValue.state);
+    if (!entry || entry.current === stateValue.value) return;
+
+    entry.previous = entry.current;
+    entry.current = stateValue.value;
+    entry.dirty = true;
+  }
+
+  // Query: world.getState(GameState)
+  public getState<T extends string>(token: StateToken<T>): T | undefined {
+    return this.states.get(token)?.current as T | undefined;
+  }
+
+  private runStateTransitions(): void {
+    for (const [token, entry] of this.states) {
+      if (!entry.dirty) continue;
+
+      // Run OnExit for previous state
+      if (entry.previous !== null) {
+        this.runStage(OnExit({ state: token, value: entry.previous }));
+      }
+
+      // Run OnEnter for current state
+      this.runStage(OnEnter({ state: token, value: entry.current }));
+
+      // Clear transition
+      entry.previous = null;
+      entry.dirty = false;
+    }
+  }
 
   // System registration
   public addSystem(
     stage: StageToken,
-    system: System,
+    system: System | System[],
     options?: SystemOptions,
   ): this {
-    const systems = this.systems.get(stage) ?? [];
-    systems.push({ system, conditions: options?.when ?? [] });
-    this.systems.set(stage, systems);
+    const systemsArray = Array.isArray(system) ? system : [system];
+    for (const systemEntry of systemsArray) {
+      const systems = this.systems.get(stage) ?? [];
+      systems.push({ system: systemEntry, conditions: options?.when ?? [] });
+      this.systems.set(stage, systems);
+    }
+
     return this;
   }
 
@@ -79,9 +125,12 @@ export class World {
   }
 
   public update() {
-    for (const stage of this.updateStages) {
-      this.runStage(stage);
-    }
+    this.runStage(PreUpdate);
+    this.runStateTransitions();
+    this.runStage(Update);
+    this.runStage(PostUpdate);
+    this.runStage(Render);
+
     this.advanceEventFrames();
   }
 
@@ -217,18 +266,18 @@ export class World {
 
   // Resources
 
-  public insertRes<T>(...resources: [ResourceToken<T>, T][]): this {
+  public insertResource<T>(...resources: [ResourceToken<T>, T][]): this {
     for (const [token, value] of resources) {
       this.resources.set(token, value);
     }
     return this;
   }
 
-  public getRes<T>(token: ResourceToken<T>): T | undefined {
+  public getResource<T>(token: ResourceToken<T>): T | undefined {
     return this.resources.get(token) as T | undefined;
   }
 
-  public removeRes<T>(token: ResourceToken<T>): boolean {
+  public removeResource<T>(token: ResourceToken<T>): boolean {
     return this.resources.delete(token);
   }
 

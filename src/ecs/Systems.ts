@@ -22,3 +22,13 @@ export const PreUpdate = stage();
 export const Update = stage();
 export const PostUpdate = stage();
 export const Render = stage();
+
+// Cached stage generator for dynamic stages
+const stageCache = new Map<string, StageToken>();
+
+export const stageFor = (key: string): StageToken => {
+  if (!stageCache.has(key)) {
+    stageCache.set(key, stage());
+  }
+  return stageCache.get(key)!;
+};

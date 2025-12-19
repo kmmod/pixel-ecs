@@ -36,7 +36,7 @@ export class App {
       lastTime = currentTime;
 
       // Update Time resource
-      const time = this.world.getRes(Time);
+      const time = this.world.getResource(Time);
       if (time) {
         time.delta = delta;
         time.elapsed += delta;
