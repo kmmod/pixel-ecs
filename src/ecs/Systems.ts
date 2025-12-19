@@ -1,4 +1,4 @@
-import { register, type RegistryToken } from "./Component";
+import { register, type RegistryToken } from "./Registry";
 import type { World } from "./World";
 
 export type StageToken = RegistryToken<"stage">;

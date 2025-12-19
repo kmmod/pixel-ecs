@@ -1,10 +1,12 @@
-import { register, resource, TOKEN_ID, type RegistryToken } from "./Component";
-import type {
-  CachedQuery,
-  ComponentTuple,
-  Queryable,
-  QueryResults,
-} from "./Query";
+import {
+  register,
+  TOKEN_ID,
+  type ComponentTuple,
+  type EventToken,
+  type RegistryToken,
+  type ResourceToken,
+} from "./Registry";
+import type { CachedQuery, Queryable, QueryResults } from "./Query";
 import {
   PostUpdate,
   PreUpdate,
@@ -14,31 +16,25 @@ import {
   type StageToken,
   type System,
 } from "./Systems";
+import { EventQueue, EventReader, EventWriter } from "./Event";
 
 interface EntityOperations {
   insert: (...components: ComponentTuple[]) => EntityOperations;
   remove: (...types: Queryable[]) => EntityOperations;
+  inspect: () => unknown[];
   despawn: () => void;
 }
 
-type Entity = number;
 export const Entity = register<number>();
-
-export type ResourceToken<T> = RegistryToken<T>;
-
-// Default Time resource
-type Time = { delta: number; elapsed: number };
-export const Time = resource<Time>({ delta: 0, elapsed: 0 });
 
 export class World {
   private entityCounter = 0;
   private entities = new Map<number, Map<Queryable, unknown>>();
   private queryCache = new Map<string, CachedQuery<Queryable[]>>();
   private resources = new Map<RegistryToken<unknown>, unknown>();
+  private eventQueues = new Map<EventToken<unknown>, EventQueue<unknown>>();
 
   private systems = new Map<StageToken, System[]>();
-  private running = false;
-  private animationFrameId: number | null = null;
 
   // Systems
   // Stage execution order
@@ -67,7 +63,6 @@ export class World {
 
   // Must be called first (maybe time should be inserted separately? or loop should be separate from world?)
   public init(): void {
-    this.insertRes(Time());
     this.runStage(Startup);
   }
 
@@ -76,42 +71,11 @@ export class World {
     // Warmup rendering, download assets etc
   }
 
-  public run(): void {
-    this.running = true;
-
-    let lastTime = performance.now();
-
-    const loop = (currentTime: number) => {
-      if (!this.running) return;
-
-      const delta = (currentTime - lastTime) / 1000;
-      lastTime = currentTime;
-
-      // Update Time resource
-      const time = this.getRes(Time);
-      if (time) {
-        time.delta = delta;
-        time.elapsed += delta;
-      }
-
-      for (const stage of this.updateStages) {
-        this.runStage(stage);
-      }
-      this.animationFrameId = requestAnimationFrame(loop);
-    };
-
-    this.animationFrameId = requestAnimationFrame(loop);
-  }
-
-  public stop(): void {
-    this.running = false;
-  }
-
-  public resume(): void {
-    if (!this.running) {
-      this.running = true;
-      this.run();
+  public update() {
+    for (const stage of this.updateStages) {
+      this.runStage(stage);
     }
+    this.advanceEventFrames();
   }
 
   // Queries (with caching)
@@ -195,12 +159,13 @@ export class World {
 
   public entity(entity: number): EntityOperations {
     const componentMap = this.entities.get(entity);
-    if (!componentMap) {
-      console.warn(`Entity ${entity} does not exist.`);
-    }
+    const exists = !!componentMap;
 
     const ops: EntityOperations = {
       insert: (...components: ComponentTuple[]) => {
+        if (!exists) {
+          return ops;
+        }
         for (const [type, value] of components) {
           componentMap?.set(type, value);
           this.invalidateQueriesFor(type);
@@ -208,13 +173,23 @@ export class World {
         return ops;
       },
       remove: (...types: Queryable[]) => {
+        if (!exists) {
+          return ops;
+        }
         for (const type of types) {
           componentMap?.delete(type);
           this.invalidateQueriesFor(type);
         }
         return ops;
       },
+      inspect: () => {
+        if (!exists) return [];
+        return Array.from(componentMap.values());
+      },
       despawn: () => {
+        if (!exists) {
+          return;
+        }
         this.entities.delete(entity);
         componentMap?.forEach((_, type) => {
           this.invalidateQueriesFor(type);
@@ -242,15 +217,29 @@ export class World {
     return this.resources.delete(token);
   }
 
-  // TODO: Events!
-  // // Event queue - holds events and tracks which have been read
-  // class EventQueue<T> {
-  //   private events: { data: T; frame: number }[] = [];
-  //   private currentFrame = 0;
-  //   private lastReadFrame = -1;
-  //  ...
-  //
-  // // Event reader/writer interfaces for type-safe access
-  // class EventWriter<T> {
-  // class EventReader<T> {
+  // Events
+
+  public getEventWriter<T>(token: EventToken<T>): EventWriter<T> {
+    let queue = this.eventQueues.get(token) as EventQueue<T> | undefined;
+    if (!queue) {
+      queue = new EventQueue<T>();
+      this.eventQueues.set(token, queue);
+    }
+    return new EventWriter(queue);
+  }
+
+  public getEventReader<T>(token: EventToken<T>): EventReader<T> {
+    let queue = this.eventQueues.get(token) as EventQueue<T> | undefined;
+    if (!queue) {
+      queue = new EventQueue<T>();
+      this.eventQueues.set(token, queue);
+    }
+    return new EventReader(queue);
+  }
+
+  private advanceEventFrames(): void {
+    for (const queue of this.eventQueues.values()) {
+      queue.nextFrame();
+    }
+  }
 }

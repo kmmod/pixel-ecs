@@ -1,4 +1,4 @@
-import type { RegistryToken } from "./Component";
+import type { RegistryToken } from "./Registry";
 
 export type Queryable = RegistryToken<unknown>;
 
@@ -8,8 +8,6 @@ type QueryResult<T extends Queryable> =
 export type QueryResults<T extends Queryable[]> = {
   [K in keyof T]: QueryResult<T[K]>;
 };
-
-export type ComponentTuple = [RegistryToken<unknown>, unknown];
 
 export interface CachedQuery<T extends Queryable[]> {
   types: T;
