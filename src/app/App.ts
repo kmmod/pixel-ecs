@@ -43,8 +43,10 @@ export class App {
         time.elapsed += delta;
       }
 
+      // const t0 = performance.now();
       this.world.update();
       this.animationFrameId = requestAnimationFrame(loop);
+      // console.log(`Frame time: ${(performance.now() - t0).toFixed(2)} ms`);
 
       // TODO: Debug tools ideas:
       // - Log frame time, entity count, system execution times

@@ -8,6 +8,7 @@
 import { World, Entity } from "../ecs/World";
 import { component } from "../ecs/Registry";
 import { Update } from "../ecs/Systems";
+import { Without } from "../ecs/Query";
 
 // Define components
 const Position = component((x: number, y: number) => ({ x, y }));
@@ -15,11 +16,24 @@ const Velocity = component((x: number, y: number) => ({ x, y }));
 const Health = component((current: number, max: number) => ({ current, max }));
 const Enemy = component(() => ({}));
 
-// Movement system - uses queryMut since we modify Position
-const movementSystem = (world: World) => {
+// Movement system - uses queryMut to track all entities with Position and Velocity as 'changed'
+const movementUpdate = (world: World) => {
   for (const [pos, vel] of world.queryMut(Position, Velocity)) {
     pos.x += vel.x;
     pos.y += vel.y;
+  }
+};
+
+const withoutVelocity = (world: World) => {
+  // Query entities with Position but without Velocity
+  for (const [entity, pos] of world.query(
+    Entity,
+    Position,
+    Without(Velocity),
+  )) {
+    console.log(
+      `Entity ${entity} has Position but no Velocity: (${pos.x}, ${pos.y})`,
+    );
   }
 };
 
@@ -31,7 +45,7 @@ const debugSystem = (world: World) => {
 };
 
 // Query with change detection
-const positionChangedSystem = (world: World) => {
+const positionChanged = (world: World) => {
   for (const [entity, pos] of world.queryChanged(Entity, Position)) {
     console.log(`Entity ${entity} moved to (${pos.x}, ${pos.y})`);
   }
@@ -56,8 +70,9 @@ export const queryExample = () => {
   const world = new World();
 
   world.addSystem(Update, debugSystem);
-  world.addSystem(Update, movementSystem);
-  world.addSystem(Update, positionChangedSystem);
+  world.addSystem(Update, movementUpdate);
+  world.addSystem(Update, withoutVelocity);
+  world.addSystem(Update, positionChanged);
   world.addSystem(Update, onEnemySpawned);
   world.addSystem(Update, onHealthRemoved);
 
@@ -65,6 +80,7 @@ export const queryExample = () => {
   world.registerArchetype(Position, Velocity);
 
   // Spawn entities
+  world.spawn(Position(0, 0));
   world.spawn(Position(0, 0), Velocity(1, 0));
   world.spawn(Position(5, 5), Velocity(0, -1), Enemy());
   const id = world.spawn(Position(10, 10), Health(100, 100));
