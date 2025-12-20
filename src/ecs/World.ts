@@ -6,7 +6,7 @@ import {
   type RegistryToken,
   type ResourceToken,
 } from "./Registry";
-import type { Queryable, QueryResults } from "./Query";
+import { isWithout, type Queryable, type QueryResults } from "./Query";
 import {
   PostUpdate,
   PreUpdate,
@@ -25,8 +25,8 @@ export const Entity = register<number>();
 
 type Archetype = {
   id: number;
-  signature: Set<Queryable>;
-  columns: Map<Queryable, unknown[]>;
+  signature: Set<RegistryToken<unknown>>;
+  columns: Map<RegistryToken<unknown>, unknown[]>;
   entities: number[];
 };
 
@@ -51,25 +51,18 @@ interface EntityOperations {
    * Marks the component as changed for {@link World.queryChanged}.
    */
   getMut: <C>(token: RegistryToken<C>) => C | undefined;
-
   /**
    * Check if the entity has all specified component types.
    */
-  has: (...types: Queryable[]) => boolean;
-
+  has: (...types: RegistryToken<unknown>[]) => boolean;
   /**
-   * Insert or update components on the entity.
+   * Insert components into the entity.
    */
   insert: (...components: ComponentTuple[]) => void;
-
   /**
    * Remove components from the entity by their tokens.
    */
-  remove: (...types: Queryable[]) => void;
-
-  /**
-   * Get all component values for debugging purposes.
-   */
+  remove: (...types: RegistryToken<unknown>[]) => void;
   inspect: () => unknown[];
 
   /**
@@ -139,14 +132,16 @@ export class World {
   // Archetype helpers
   // ============================================================
 
-  private getSignatureKey(types: Iterable<Queryable>): string {
+  private getSignatureKey(types: Iterable<RegistryToken<unknown>>): string {
     return [...types]
       .map((t) => t[TOKEN_ID])
       .sort((a, b) => a - b)
       .join(":");
   }
 
-  private getOrCreateArchetype(signature: Set<Queryable>): Archetype {
+  private getOrCreateArchetype(
+    signature: Set<RegistryToken<unknown>>,
+  ): Archetype {
     const key = this.getSignatureKey(signature);
     let archetype = this.archetypes.get(key);
 
@@ -172,7 +167,6 @@ export class World {
   private invalidateQueryCache(): void {
     this.queryCache.clear();
   }
-
   /**
    * Pre-register an archetype for a specific combination of component types.
    * This can improve performance by avoiding archetype creation during gameplay.
@@ -189,16 +183,16 @@ export class World {
    *   .registerArchetype(Position, Collider);
    * ```
    */
-  public registerArchetype(...tokens: Queryable[]): this {
+  public registerArchetype(...tokens: RegistryToken<unknown>[]): this {
     this.getOrCreateArchetype(new Set(tokens));
     return this;
   }
 
   // ============================================================
-  // Mutation tracking helpers
+  // Mutation tracking
   // ============================================================
 
-  private markMutated(entityId: number, token: Queryable): void {
+  private markMutated(entityId: number, token: RegistryToken<unknown>): void {
     let set = this.mutatedThisFrame.get(token);
     if (!set) {
       set = new Set();
@@ -420,17 +414,36 @@ export class World {
   // ============================================================
 
   private getMatchingArchetypes(types: Queryable[]): Archetype[] {
-    const key = this.getSignatureKey(types.filter((t) => t !== Entity));
+    const required: RegistryToken<unknown>[] = [];
+    const excluded: number[] = [];
+
+    for (const t of types) {
+      if (t === Entity) continue;
+      if (isWithout(t)) {
+        excluded.push(t[TOKEN_ID]);
+      } else {
+        required.push(t as RegistryToken<unknown>);
+      }
+    }
+
+    const key =
+      this.getSignatureKey(required) +
+      (excluded.length > 0 ? "|!" + excluded.sort().join(":") : "");
     let cached = this.queryCache.get(key);
 
     if (!cached) {
       cached = [];
-      const queryTypes = types.filter((t) => t !== Entity);
 
       for (const archetype of this.archetypes.values()) {
-        if (queryTypes.every((t) => archetype.signature.has(t))) {
-          cached.push(archetype);
-        }
+        const hasRequired = required.every((t) => archetype.signature.has(t));
+        if (!hasRequired) continue;
+
+        const hasExcluded = excluded.some((id) =>
+          [...archetype.signature].some((t) => t[TOKEN_ID] === id),
+        );
+        if (hasExcluded) continue;
+
+        cached.push(archetype);
       }
       this.queryCache.set(key, cached);
     }
@@ -439,36 +452,32 @@ export class World {
   }
 
   /**
-   * Query for all entities that have the specified components (read-only).
-   * Use {@link queryMut} instead if you plan to modify the components.
-   *
-   * Include {@link Entity} in the query to get entity IDs.
-   *
-   * @param types - Component tokens to query for
-   * @returns Array of tuples, each containing the queried components in order
+   * Query for entities with specified components.
+   * Use Without(Component) to exclude entities.
    *
    * @example
    * ```ts
-   * // Query all entities with Position and Velocity
-   * for (const [pos, vel] of world.query(Position, Velocity)) {
-   *   console.log(`Position: ${pos.x}, ${pos.y}`);
-   * }
+   * // Basic query
+   * for (const [pos, vel] of world.query(Position, Velocity)) {}
    *
-   * // Include Entity to get the entity ID
-   * for (const [entity, pos] of world.query(Entity, Position)) {
-   *   console.log(`Entity ${entity} is at ${pos.x}, ${pos.y}`);
-   * }
+   * // With entity ID
+   * for (const [entity, pos] of world.query(Entity, Position)) {}
+   *
+   * // Exclude enemies
+   * for (const [entity, pos] of world.query(Entity, Position, Without(Enemy))) {}
    * ```
    */
   public query<T extends Queryable[]>(...types: T): QueryResults<T>[] {
     const archetypes = this.getMatchingArchetypes(types);
     const results: QueryResults<T>[] = [];
+    const outputTypes = types.filter((t) => !isWithout(t));
 
     for (const archetype of archetypes) {
       const len = archetype.entities.length;
-
-      const columns = types.map((t) =>
-        t === Entity ? archetype.entities : archetype.columns.get(t)!,
+      const columns = outputTypes.map((t) =>
+        t === Entity
+          ? archetype.entities
+          : archetype.columns.get(t as RegistryToken<unknown>)!,
       );
 
       for (let row = 0; row < len; row++) {
@@ -513,21 +522,22 @@ export class World {
   public queryMut<T extends Queryable[]>(...types: T): QueryResults<T>[] {
     const archetypes = this.getMatchingArchetypes(types);
     const results: QueryResults<T>[] = [];
-
-    // Track which component types (excluding Entity) we're mutating
-    const componentTypes = types.filter((t) => t !== Entity);
+    const componentTypes = types.filter(
+      (t) => t !== Entity && !isWithout(t),
+    ) as RegistryToken<unknown>[];
+    const outputTypes = types.filter((t) => !isWithout(t));
 
     for (const archetype of archetypes) {
       const len = archetype.entities.length;
-
-      const columns = types.map((t) =>
-        t === Entity ? archetype.entities : archetype.columns.get(t)!,
+      const columns = outputTypes.map((t) =>
+        t === Entity
+          ? archetype.entities
+          : archetype.columns.get(t as RegistryToken<unknown>)!,
       );
 
       for (let row = 0; row < len; row++) {
         const entityId = archetype.entities[row];
 
-        // Mark all queried component types as mutated for this entity
         for (const token of componentTypes) {
           this.markMutated(entityId, token);
         }
@@ -558,7 +568,9 @@ export class World {
    * ```
    */
   public queryAdded<T extends Queryable[]>(...types: T): QueryResults<T>[] {
-    const componentTypes = types.filter((t) => t !== Entity);
+    const componentTypes = types.filter(
+      (t) => t !== Entity && !isWithout(t),
+    ) as RegistryToken<unknown>[];
     if (componentTypes.length === 0) return [];
 
     const addedEntities = new Set<number>();
@@ -573,8 +585,8 @@ export class World {
 
     if (addedEntities.size === 0) return [];
 
-    return this.query(...types).filter(([entity]) =>
-      addedEntities.has(entity as number),
+    return this.query(...types).filter((tuple) =>
+      addedEntities.has(tuple[0] as number),
     );
   }
 
@@ -607,7 +619,9 @@ export class World {
    * ```
    */
   public queryChanged<T extends Queryable[]>(...types: T): QueryResults<T>[] {
-    const componentTypes = types.filter((t) => t !== Entity);
+    const componentTypes = types.filter(
+      (t) => t !== Entity && !isWithout(t),
+    ) as RegistryToken<unknown>[];
     if (componentTypes.length === 0) return [];
 
     // Collect all entities that had ANY of the queried components mutated
@@ -623,12 +637,10 @@ export class World {
 
     if (changedEntities.size === 0) return [];
 
-    // Filter the full query results to only include changed entities
-    return this.query(...types).filter(([entity]) =>
-      changedEntities.has(entity as number),
+    return this.query(...types).filter((tuple) =>
+      changedEntities.has(tuple[0] as number),
     );
   }
-
   /**
    * Get entity IDs that had any of the specified components removed last frame.
    * Useful for cleanup logic when components are detached.
@@ -652,7 +664,7 @@ export class World {
    * };
    * ```
    */
-  public queryRemoved(...types: Queryable[]): number[] {
+  public queryRemoved(...types: RegistryToken<unknown>[]): number[] {
     const componentTypes = types.filter((t) => t !== Entity);
     if (componentTypes.length === 0) return [];
 
@@ -699,7 +711,9 @@ export class World {
    */
   public spawn(...components: ComponentTuple[]): number {
     const entity = ++this.entityCounter;
-    const signature = new Set<Queryable>(components.map(([token]) => token));
+    const signature = new Set<RegistryToken<unknown>>(
+      components.map(([token]) => token),
+    );
     const archetype = this.getOrCreateArchetype(signature);
 
     const row = archetype.entities.length;
@@ -708,7 +722,6 @@ export class World {
     for (const [token, value] of components) {
       archetype.columns.get(token)!.push(value);
 
-      // Track additions
       if (!this.addedThisFrame.has(token)) {
         this.addedThisFrame.set(token, new Set());
       }
@@ -716,7 +729,6 @@ export class World {
     }
 
     this.entityRecords[entity] = { archetype, row };
-
     return entity;
   }
 
@@ -753,7 +765,7 @@ export class World {
 
     // Get archetype once from first entity's components
     const templateComponents = factory();
-    const signature = new Set<Queryable>(
+    const signature = new Set<RegistryToken<unknown>>(
       templateComponents.map(([token]) => token),
     );
     const archetype = this.getOrCreateArchetype(signature);
@@ -837,16 +849,15 @@ export class World {
 
         // Mark as mutated
         this.markMutated(entityId, token);
-
         return col[record.row] as C | undefined;
       },
 
-      has: (...types: Queryable[]): boolean => {
+      has: (...types: RegistryToken<unknown>[]): boolean => {
         if (!exists) return false;
         return types.every((t) => record.archetype.signature.has(t));
       },
 
-      insert: (...components: ComponentTuple[]) => {
+      insert: (...components: ComponentTuple[]): void => {
         if (!exists) return;
 
         const oldArchetype = record.archetype;
@@ -873,8 +884,7 @@ export class World {
           newSignature.add(token);
         }
 
-        // Collect current values
-        const componentValues = new Map<Queryable, unknown>();
+        const componentValues = new Map<RegistryToken<unknown>, unknown>();
         for (const token of oldArchetype.signature) {
           componentValues.set(token, oldArchetype.columns.get(token)![oldRow]);
         }
@@ -903,35 +913,29 @@ export class World {
           }
           this.addedThisFrame.get(token)!.add(entityId);
         }
-
-        return;
       },
 
-      remove: (...types: Queryable[]) => {
+      remove: (...types: RegistryToken<unknown>[]): void => {
         if (!exists) return;
 
         const oldArchetype = record.archetype;
         const oldRow = record.row;
 
-        // Check which types actually exist
         const typesToRemove = types.filter((t) =>
           oldArchetype.signature.has(t),
         );
         if (typesToRemove.length === 0) return;
 
-        // Calculate new signature
         const newSignature = new Set(oldArchetype.signature);
         for (const type of typesToRemove) {
           newSignature.delete(type);
         }
 
-        // Collect values for remaining components
-        const componentValues = new Map<Queryable, unknown>();
+        const componentValues = new Map<RegistryToken<unknown>, unknown>();
         for (const token of newSignature) {
           componentValues.set(token, oldArchetype.columns.get(token)![oldRow]);
         }
 
-        // Track removals
         for (const type of typesToRemove) {
           if (!this.removedThisFrame.has(type)) {
             this.removedThisFrame.set(type, new Set());
@@ -939,7 +943,6 @@ export class World {
           this.removedThisFrame.get(type)!.add(entityId);
         }
 
-        // Remove from old
         this.removeFromArchetype(record);
 
         // Add to new (if any components remain)
@@ -959,8 +962,6 @@ export class World {
         } else {
           this.entityRecords[entityId] = null;
         }
-
-        return;
       },
 
       inspect: () => {
@@ -998,7 +999,6 @@ export class World {
       this.entityRecords[lastEntity]!.row = row;
     }
 
-    // Pop last element
     archetype.entities.pop();
     for (const col of archetype.columns.values()) {
       col.pop();

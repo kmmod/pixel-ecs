@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/36</span>
+                <span class='fraction'>0/42</span>
             </div>
         
             
@@ -39,14 +39,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/5</span>
+                <span class='fraction'>0/7</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/36</span>
+                <span class='fraction'>0/41</span>
             </div>
         
             
@@ -146,7 +146,15 @@
 <a name='L81'></a><a href='#L81'>81</a>
 <a name='L82'></a><a href='#L82'>82</a>
 <a name='L83'></a><a href='#L83'>83</a>
-<a name='L84'></a><a href='#L84'>84</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -173,6 +181,8 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -186,6 +196,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -242,7 +258,7 @@
 } from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { World } from "../../ecs/World";
-import { RendererData } from "./rendererPlugin";
+import { RendererData } from "./renderer";
 &nbsp;
 export const setupRenderer = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(w</span>orld: World) =&gt; {</span>
   const container = <span class="cstat-no" title="statement not covered" >document.getElementById("app");</span>
@@ -254,6 +270,8 @@ export const setupRenderer = <span class="cstat-no" title="statement not covered
   const camera = <span class="cstat-no" title="statement not covered" >createCamera();</span>
   const renderer = <span class="cstat-no" title="statement not covered" >createRenderer(container);</span>
   const controls = <span class="cstat-no" title="statement not covered" >createControls(camera, renderer);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  window.addEventListener("resize", <span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >r</span>esizeListener(camera, renderer))</span>;</span>
 &nbsp;
   const geometry = <span class="cstat-no" title="statement not covered" >new BoxGeometry(1, 1, 1);</span>
   const material = <span class="cstat-no" title="statement not covered" >new MeshBasicMaterial({ color: 0x00ff00 });</span>
@@ -269,6 +287,12 @@ export const setupRenderer = <span class="cstat-no" title="statement not covered
       scene,
     }),
   );
+};
+&nbsp;
+const resizeListener = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(c</span>amera: PerspectiveCamera, renderer: WebGLRenderer) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  camera.aspect = window.innerWidth / window.innerHeight;</span>
+<span class="cstat-no" title="statement not covered" >  camera.updateProjectionMatrix();</span>
+<span class="cstat-no" title="statement not covered" >  renderer.setSize(window.innerWidth, window.innerHeight);</span>
 };
 &nbsp;
 const createScene = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(): Scene =&gt; {</span></span>
@@ -319,7 +343,7 @@ const createControls = <span class="cstat-no" title="statement not covered" ><sp
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-12-20T12:38:02.629Z
+                at 2025-12-20T17:45:44.690Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

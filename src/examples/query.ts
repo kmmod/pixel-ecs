@@ -61,6 +61,9 @@ export const queryExample = () => {
   world.addSystem(Update, onEnemySpawned);
   world.addSystem(Update, onHealthRemoved);
 
+  // Register archetypes (optional, for optimization)
+  world.registerArchetype(Position, Velocity);
+
   // Spawn entities
   world.spawn(Position(0, 0), Velocity(1, 0));
   world.spawn(Position(5, 5), Velocity(0, -1), Enemy());

@@ -1,10 +1,13 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { World, Entity } from "../../ecs/World";
 import { component } from "../../ecs/Registry";
+import { Without } from "../Query";
 
 const Position = component((x: number, y: number) => ({ x, y }));
 const Velocity = component((x: number, y: number) => ({ x, y }));
 const Health = component((current: number) => ({ current }));
+const Enemy = component(() => ({}));
+const Frozen = component(() => ({}));
 
 describe("World.query", () => {
   let world: World;
@@ -259,5 +262,95 @@ describe("World.registerArchetype", () => {
     world.spawn(Position(1, 1), Velocity(2, 2));
 
     expect(world.query(Entity, Position, Velocity)).toHaveLength(1);
+  });
+});
+
+describe("Without filter", () => {
+  let world: World;
+
+  beforeEach(() => {
+    world = new World();
+  });
+
+  it("excludes entities with specified component", () => {
+    world.spawn(Position(0, 0));
+    world.spawn(Position(1, 1), Enemy());
+    world.spawn(Position(2, 2));
+
+    const results = world.query(Entity, Position, Without(Enemy));
+
+    expect(results).toHaveLength(2);
+    expect(results.map(([_, pos]) => pos.x)).toEqual([0, 2]);
+  });
+
+  it("works with multiple Without filters", () => {
+    world.spawn(Position(0, 0));
+    world.spawn(Position(1, 1), Enemy());
+    world.spawn(Position(2, 2), Frozen());
+    world.spawn(Position(3, 3), Enemy(), Frozen());
+
+    const results = world.query(
+      Entity,
+      Position,
+      Without(Enemy),
+      Without(Frozen),
+    );
+
+    expect(results).toHaveLength(1);
+    expect(results[0][1].x).toBe(0);
+  });
+
+  it("returns all entities when excluded component not present", () => {
+    world.spawn(Position(0, 0));
+    world.spawn(Position(1, 1));
+
+    const results = world.query(Position, Without(Enemy));
+
+    expect(results).toHaveLength(2);
+  });
+
+  it("returns empty when all entities have excluded component", () => {
+    world.spawn(Position(0, 0), Enemy());
+    world.spawn(Position(1, 1), Enemy());
+
+    const results = world.query(Position, Without(Enemy));
+
+    expect(results).toHaveLength(0);
+  });
+
+  it("works with queryMut", () => {
+    world.spawn(Position(0, 0));
+    world.spawn(Position(1, 1), Frozen());
+
+    const results = world.queryMut(Position, Without(Frozen));
+
+    expect(results).toHaveLength(1);
+    results[0][0].x = 99;
+
+    // Verify mutation worked
+    const [[pos]] = world.query(Position, Without(Frozen));
+    expect(pos.x).toBe(99);
+  });
+
+  it("does not include Without component in result tuple", () => {
+    world.spawn(Position(5, 5), Velocity(1, 1));
+
+    const results = world.query(Entity, Position, Without(Enemy));
+
+    // Should be [entity, position], not [entity, position, undefined]
+    expect(results[0]).toHaveLength(2);
+  });
+
+  it("caches queries with Without filters", () => {
+    world.spawn(Position(0, 0));
+    world.spawn(Position(1, 1), Enemy());
+
+    // Run same query twice
+    const results1 = world.query(Position, Without(Enemy));
+    const results2 = world.query(Position, Without(Enemy));
+
+    expect(results1).toHaveLength(1);
+    expect(results2).toHaveLength(1);
+    expect(results1).toEqual(results2);
   });
 });
