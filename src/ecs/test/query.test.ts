@@ -162,6 +162,16 @@ describe("World.queryChanged", () => {
     expect(changed).toHaveLength(1);
   });
 
+  it("detects queryMut access", () => {
+    world.spawn(Position(0, 0));
+    world.update(); // clear added state
+
+    world.queryMut(Position);
+    world.update();
+    const changed = world.queryChanged(Entity, Position);
+    expect(changed).toHaveLength(1);
+  });
+
   it("detects insert updates on existing components", () => {
     const id = world.spawn(Position(0, 0));
     world.update();

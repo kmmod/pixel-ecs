@@ -93,6 +93,7 @@ interface EntityOperations {
  */
 export class World {
   private entityCounter = 0;
+  private freeEntityIds: number[] = [];
 
   // Archetype storage
   private entityRecords: (EntityRecord | null)[] = [];
@@ -118,12 +119,12 @@ export class World {
   private systems = new Map<StageToken, SystemEntry[]>();
 
   // Change tracking
-  private addedThisFrame = new Map<Queryable, Set<number>>();
-  private removedThisFrame = new Map<Queryable, Set<number>>();
-  private addedLastFrame = new Map<Queryable, Set<number>>();
-  private removedLastFrame = new Map<Queryable, Set<number>>();
-  private mutatedThisFrame = new Map<Queryable, Set<number>>();
-  private mutatedLastFrame = new Map<Queryable, Set<number>>();
+  private addedThisFrame = new Map<RegistryToken<unknown>, Set<number>>();
+  private removedThisFrame = new Map<RegistryToken<unknown>, Set<number>>();
+  private addedLastFrame = new Map<RegistryToken<unknown>, Set<number>>();
+  private removedLastFrame = new Map<RegistryToken<unknown>, Set<number>>();
+  private mutatedThisFrame = new Map<RegistryToken<unknown>, Set<number>>();
+  private mutatedLastFrame = new Map<RegistryToken<unknown>, Set<number>>();
 
   // Deferred operations
   private pendingDespawns = new Set<number>();
@@ -496,6 +497,8 @@ export class World {
    * Components accessed via `queryMut` will appear in {@link queryChanged} results
    * on the next frame.
    *
+   * This is more expensive than a regular {@link query} due to mutation tracking overhead.
+   *
    * @param types - Component tokens to query for
    * @returns Array of tuples, each containing the queried components in order
    *
@@ -710,7 +713,7 @@ export class World {
    * ```
    */
   public spawn(...components: ComponentTuple[]): number {
-    const entity = ++this.entityCounter;
+    const entity = this.freeEntityIds.pop() ?? ++this.entityCounter;
     const signature = new Set<RegistryToken<unknown>>(
       components.map(([token]) => token),
     );
@@ -1007,6 +1010,7 @@ export class World {
 
   private processDespawns(): void {
     for (const entityId of this.pendingDespawns) {
+      this.freeEntityIds.push(entityId); // recycle ID
       const record = this.entityRecords[entityId];
       if (!record) continue;
 
