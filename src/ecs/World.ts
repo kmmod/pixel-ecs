@@ -35,16 +35,71 @@ type EntityRecord = {
   row: number;
 };
 
+/**
+ * Fluent interface for operating on a single entity.
+ * Returned by {@link World.entity}.
+ */
 interface EntityOperations {
+  /**
+   * Get a component by its token (read-only access).
+   * Does not mark the component as changed.
+   */
   get: <C>(token: RegistryToken<C>) => C | undefined;
+
+  /**
+   * Get a component by its token with mutable access.
+   * Marks the component as changed for {@link World.queryChanged}.
+   */
   getMut: <C>(token: RegistryToken<C>) => C | undefined;
+
+  /**
+   * Check if the entity has all specified component types.
+   */
   has: (...types: Queryable[]) => boolean;
+
+  /**
+   * Insert or update components on the entity.
+   * Returns self for chaining.
+   */
   insert: (...components: ComponentTuple[]) => EntityOperations;
+
+  /**
+   * Remove components from the entity by their tokens.
+   * Returns self for chaining.
+   */
   remove: (...types: Queryable[]) => EntityOperations;
+
+  /**
+   * Get all component values for debugging purposes.
+   */
   inspect: () => unknown[];
+
+  /**
+   * Mark the entity for removal at end of frame.
+   */
   despawn: () => void;
 }
 
+/**
+ * The World is the central data structure of the ECS.
+ * It stores all entities, components, resources, and systems.
+ *
+ * @example
+ * ```ts
+ * const world = new World();
+ *
+ * // Register systems
+ * world.addSystem(Update, movementSystem);
+ * world.addSystem(Render, renderSystem);
+ *
+ * // Spawn entities
+ * world.spawn(Position(0, 0), Velocity(1, 1));
+ *
+ * // Run the world
+ * world.init();
+ * world.update(); // call each frame
+ * ```
+ */
 export class World {
   private entityCounter = 0;
 
@@ -76,8 +131,6 @@ export class World {
   private removedThisFrame = new Map<Queryable, Set<number>>();
   private addedLastFrame = new Map<Queryable, Set<number>>();
   private removedLastFrame = new Map<Queryable, Set<number>>();
-
-  // Mutation tracking (for queryChanged)
   private mutatedThisFrame = new Map<Queryable, Set<number>>();
   private mutatedLastFrame = new Map<Queryable, Set<number>>();
 
@@ -122,7 +175,22 @@ export class World {
     this.queryCache.clear();
   }
 
-  // Warm up an archetype for the given component types
+  /**
+   * Pre-register an archetype for a specific combination of component types.
+   * This can improve performance by avoiding archetype creation during gameplay.
+   *
+   * @param tokens - Component tokens that define the archetype signature
+   * @returns `this` for chaining
+   *
+   * @example
+   * ```ts
+   * // Pre-warm common archetypes at startup
+   * world
+   *   .registerArchetype(Position, Velocity)
+   *   .registerArchetype(Position, Velocity, Sprite)
+   *   .registerArchetype(Position, Collider);
+   * ```
+   */
   public registerArchetype(...tokens: Queryable[]): this {
     this.getOrCreateArchetype(new Set(tokens));
     return this;
@@ -145,6 +213,24 @@ export class World {
   // State management
   // ============================================================
 
+  /**
+   * Register a state machine with its initial value.
+   * States can be used to control system execution via {@link OnEnter} and {@link OnExit} stages.
+   *
+   * @param token - State token created with `state()`, must include `initial` value
+   * @returns `this` for chaining
+   *
+   * @example
+   * ```ts
+   * const GameState = state<"menu" | "playing" | "paused">("menu");
+   *
+   * world.insertState(GameState);
+   *
+   * // Systems that run on state transitions
+   * world.addSystem(OnEnter(GameState("playing")), startGameSystem);
+   * world.addSystem(OnExit(GameState("playing")), cleanupGameSystem);
+   * ```
+   */
   public insertState<T extends string>(
     token: StateToken<T> & { initial: T },
   ): this {
@@ -156,6 +242,22 @@ export class World {
     return this;
   }
 
+  /**
+   * Transition a state machine to a new value.
+   * This triggers {@link OnExit} systems for the old state and {@link OnEnter} systems
+   * for the new state during the next {@link update} call.
+   *
+   * @param stateValue - State value created by calling the state token as a function
+   *
+   * @example
+   * ```ts
+   * // Transition to playing state
+   * world.setState(GameState("playing"));
+   *
+   * // Later, pause the game
+   * world.setState(GameState("paused"));
+   * ```
+   */
   public setState<T extends string>(stateValue: StateValue<T>): void {
     const entry = this.states.get(stateValue.state);
     if (!entry || entry.current === stateValue.value) return;
@@ -165,6 +267,20 @@ export class World {
     entry.dirty = true;
   }
 
+  /**
+   * Get the current value of a state machine.
+   *
+   * @param token - State token to query
+   * @returns Current state value, or `undefined` if state not registered
+   *
+   * @example
+   * ```ts
+   * const currentState = world.getState(GameState);
+   * if (currentState === "paused") {
+   *   // Handle paused state
+   * }
+   * ```
+   */
   public getState<T extends string>(token: StateToken<T>): T | undefined {
     return this.states.get(token)?.current as T | undefined;
   }
@@ -188,6 +304,31 @@ export class World {
   // Systems
   // ============================================================
 
+  /**
+   * Register a system to run during a specific stage.
+   * Systems are functions that operate on the world, typically querying
+   * and modifying entities and components.
+   *
+   * @param stage - Stage token (e.g., `Startup`, `Update`, `Render`)
+   * @param system - System function or array of system functions
+   * @param options - Optional configuration
+   * @param options.when - Array of condition functions; system only runs if all return `true`
+   * @returns `this` for chaining
+   *
+   * @example
+   * ```ts
+   * // Basic system registration
+   * world.addSystem(Update, movementSystem);
+   *
+   * // Multiple systems at once
+   * world.addSystem(Update, [physicsSystem, collisionSystem]);
+   *
+   * // Conditional system (only runs when game is not paused)
+   * world.addSystem(Update, aiSystem, {
+   *   when: [(world) => world.getState(GameState) === "playing"]
+   * });
+   * ```
+   */
   public addSystem(
     stage: StageToken,
     system: System | System[],
@@ -215,14 +356,55 @@ export class World {
   // Lifecycle
   // ============================================================
 
+  /**
+   * Initialize the world by running all {@link Startup} systems.
+   * Call this once before the game loop begins.
+   *
+   * @example
+   * ```ts
+   * world.addSystem(Startup, loadAssetsSystem);
+   * world.addSystem(Startup, spawnPlayerSystem);
+   *
+   * world.init(); // Runs startup systems once
+   *
+   * // Game loop
+   * function loop() {
+   *   world.update();
+   *   requestAnimationFrame(loop);
+   * }
+   * ```
+   */
   public init(): void {
     this.runStage(Startup);
   }
 
+  /**
+   * Async version of {@link init} for systems that need to await resources.
+   * Currently a placeholder for future async startup system support.
+   */
   public async initAsync(): Promise<void> {
     // For async startup systems in the future
   }
 
+  /**
+   * Run one frame of the world simulation.
+   * Executes systems in order: PreUpdate → State Transitions → Update → PostUpdate → Render.
+   * Also processes deferred despawns and advances change tracking.
+   *
+   * Call this once per frame in your game loop.
+   *
+   * @example
+   * ```ts
+   * // Typical game loop
+   * function gameLoop() {
+   *   world.update();
+   *   requestAnimationFrame(gameLoop);
+   * }
+   *
+   * // Or with fixed timestep
+   * setInterval(() => world.update(), 1000 / 60);
+   * ```
+   */
   public update(): void {
     this.runStage(PreUpdate);
     this.runStateTransitions();
@@ -258,6 +440,28 @@ export class World {
     return cached;
   }
 
+  /**
+   * Query for all entities that have the specified components (read-only).
+   * Use {@link queryMut} instead if you plan to modify the components.
+   *
+   * Include {@link Entity} in the query to get entity IDs.
+   *
+   * @param types - Component tokens to query for
+   * @returns Array of tuples, each containing the queried components in order
+   *
+   * @example
+   * ```ts
+   * // Query all entities with Position and Velocity
+   * for (const [pos, vel] of world.query(Position, Velocity)) {
+   *   console.log(`Position: ${pos.x}, ${pos.y}`);
+   * }
+   *
+   * // Include Entity to get the entity ID
+   * for (const [entity, pos] of world.query(Entity, Position)) {
+   *   console.log(`Entity ${entity} is at ${pos.x}, ${pos.y}`);
+   * }
+   * ```
+   */
   public query<T extends Queryable[]>(...types: T): QueryResults<T>[] {
     const archetypes = this.getMatchingArchetypes(types);
     const results: QueryResults<T>[] = [];
@@ -279,19 +483,33 @@ export class World {
   }
 
   /**
-   * Query for components with mutable access.
-   * All returned components are marked as mutated for change detection.
-   * Use this when you intend to modify the components.
+   * Query for all entities with the specified components, marking them as mutated.
+   * Use this when you intend to modify the returned components.
    *
+   * Components accessed via `queryMut` will appear in {@link queryChanged} results
+   * on the next frame.
+   *
+   * @param types - Component tokens to query for
+   * @returns Array of tuples, each containing the queried components in order
+   *
+   * @example
    * ```ts
-   * for (const [entity, pos, vel] of world.queryMut(Entity, Position, Velocity)) {
-   *   pos.x += vel.x * delta;
-   *   pos.y += vel.y * delta;
-   * }
-   * // Later, another system can detect changes:
-   * for (const [entity, pos] of world.queryChanged(Entity, Position)) {
-   *   // React to position changes
-   * }
+   * // Movement system - modifies Position based on Velocity
+   * const movementSystem = (world: World) => {
+   *   const time = world.getResource(Time)!;
+   *
+   *   for (const [pos, vel] of world.queryMut(Position, Velocity)) {
+   *     pos.x += vel.x * time.delta;
+   *     pos.y += vel.y * time.delta;
+   *   }
+   * };
+   *
+   * // Later, react to position changes
+   * const spatialUpdateSystem = (world: World) => {
+   *   for (const [entity, pos] of world.queryChanged(Entity, Position)) {
+   *     updateSpatialIndex(entity, pos);
+   *   }
+   * };
    * ```
    */
   public queryMut<T extends Queryable[]>(...types: T): QueryResults<T>[] {
@@ -324,6 +542,23 @@ export class World {
     return results;
   }
 
+  /**
+   * Query for entities that had any of the specified components added last frame.
+   * Useful for initialization logic when components are first attached.
+   *
+   * @param types - Component tokens to query for
+   * @returns Array of tuples for entities with newly added components
+   *
+   * @example
+   * ```ts
+   * // Initialize physics bodies when Collider is added
+   * const initPhysicsSystem = (world: World) => {
+   *   for (const [entity, collider, pos] of world.queryAdded(Entity, Collider, Position)) {
+   *     collider.body = physicsWorld.createBody(pos.x, pos.y);
+   *   }
+   * };
+   * ```
+   */
   public queryAdded<T extends Queryable[]>(...types: T): QueryResults<T>[] {
     const componentTypes = types.filter((t) => t !== Entity);
     if (componentTypes.length === 0) return [];
@@ -346,17 +581,31 @@ export class World {
   }
 
   /**
-   * Query for entities where any of the specified components were
-   * accessed mutably (via queryMut or getMut) last frame.
+   * Query for entities where any of the specified components were accessed
+   * mutably (via {@link queryMut} or {@link EntityOperations.getMut}) last frame.
    *
-   * Note: This tracks mutable *access*, not actual value changes.
-   * There may be false positives if you get a mutable reference
-   * but don't actually modify the component.
+   * **Note:** This tracks mutable *access*, not actual value changes.
+   * There may be false positives if you get a mutable reference but don't
+   * actually modify the component.
    *
+   * @param types - Component tokens to query for
+   * @returns Array of tuples for entities with potentially changed components
+   *
+   * @example
    * ```ts
-   * for (const [entity, pos] of world.queryChanged(Entity, Position)) {
-   *   console.log(`Entity ${entity} position may have changed`);
-   * }
+   * // Update spatial index when positions change
+   * const updateSpatialIndexSystem = (world: World) => {
+   *   for (const [entity, pos] of world.queryChanged(Entity, Position)) {
+   *     spatialIndex.update(entity, pos.x, pos.y);
+   *   }
+   * };
+   *
+   * // Recalculate bounding boxes when transforms change
+   * const updateBoundsSystem = (world: World) => {
+   *   for (const [entity, transform, bounds] of world.queryChanged(Entity, Transform, Bounds)) {
+   *     bounds.recalculate(transform);
+   *   }
+   * };
    * ```
    */
   public queryChanged<T extends Queryable[]>(...types: T): QueryResults<T>[] {
@@ -382,6 +631,29 @@ export class World {
     );
   }
 
+  /**
+   * Get entity IDs that had any of the specified components removed last frame.
+   * Useful for cleanup logic when components are detached.
+   *
+   * **Note:** Only returns entity IDs since the components no longer exist.
+   *
+   * @param types - Component tokens to check for removal
+   * @returns Array of entity IDs that had components removed
+   *
+   * @example
+   * ```ts
+   * // Clean up physics bodies when Collider is removed
+   * const cleanupPhysicsSystem = (world: World) => {
+   *   for (const entityId of world.queryRemoved(Collider)) {
+   *     const body = physicsBodyMap.get(entityId);
+   *     if (body) {
+   *       physicsWorld.destroyBody(body);
+   *       physicsBodyMap.delete(entityId);
+   *     }
+   *   }
+   * };
+   * ```
+   */
   public queryRemoved(...types: Queryable[]): number[] {
     const componentTypes = types.filter((t) => t !== Entity);
     if (componentTypes.length === 0) return [];
@@ -403,6 +675,30 @@ export class World {
   // Entities
   // ============================================================
 
+  /**
+   * Create a new entity with the specified components.
+   *
+   * @param components - Component tuples created by calling component factories
+   * @returns The new entity's ID
+   *
+   * @example
+   * ```ts
+   * // Spawn an entity with multiple components
+   * const player = world.spawn(
+   *   Position(0, 0),
+   *   Velocity(0, 0),
+   *   Health(100),
+   *   Player()
+   * );
+   *
+   * // Spawn a simple entity
+   * const bullet = world.spawn(
+   *   Position(x, y),
+   *   Velocity(Math.cos(angle) * speed, Math.sin(angle) * speed),
+   *   Damage(10)
+   * );
+   * ```
+   */
   public spawn(...components: ComponentTuple[]): number {
     const entity = ++this.entityCounter;
     const signature = new Set<Queryable>(components.map(([token]) => token));
@@ -427,18 +723,32 @@ export class World {
   }
 
   /**
-   * Spawns a batch of entities using the provided factory function to generate components.
+   * Spawn multiple entities efficiently using a factory function.
+   * All entities will share the same archetype, which is more efficient
+   * than calling {@link spawn} in a loop.
    *
+   * @param count - Number of entities to spawn
+   * @param factory - Function that returns component tuples for each entity
+   * @returns Array of new entity IDs
+   *
+   * @example
    * ```ts
-   * world.spawnBatch(1000, () => [
-   *    Position(Math.random() * 100, Math.random() * 100),
-   *    Velocity(1, 1)
+   * // Spawn 1000 particles with random positions
+   * const particles = world.spawnBatch(1000, () => [
+   *   Position(Math.random() * 800, Math.random() * 600),
+   *   Velocity((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10),
+   *   Lifetime(Math.random() * 2 + 1)
    * ]);
-   *````
    *
-   * @param count
-   * @param factory
-   * @returns
+   * // Spawn enemies in a grid formation
+   * let gridIndex = 0;
+   * const enemies = world.spawnBatch(25, () => {
+   *   const x = (gridIndex % 5) * 50;
+   *   const y = Math.floor(gridIndex / 5) * 50;
+   *   gridIndex++;
+   *   return [Position(x, y), Enemy(), Health(50)];
+   * });
+   * ```
    */
   public spawnBatch(count: number, factory: () => ComponentTuple[]): number[] {
     const entities: number[] = [];
@@ -473,6 +783,44 @@ export class World {
     return entities;
   }
 
+  /**
+   * Get a fluent interface for operating on a single entity.
+   * Allows getting, setting, and removing components on the entity.
+   *
+   * Operations are safe to call on non-existent entities (they no-op).
+   *
+   * @param entityId - The entity ID to operate on
+   * @returns An {@link EntityOperations} interface for the entity
+   *
+   * @example
+   * ```ts
+   * // Get a component (read-only)
+   * const pos = world.entity(playerId).get(Position);
+   *
+   * // Get a component for mutation (marks as changed)
+   * const vel = world.entity(playerId).getMut(Velocity);
+   * if (vel) {
+   *   vel.x = 0;
+   *   vel.y = 0;
+   * }
+   *
+   * // Check if entity has components
+   * if (world.entity(id).has(Enemy, Health)) {
+   *   // It's a living enemy
+   * }
+   *
+   * // Add components to existing entity
+   * world.entity(playerId)
+   *   .insert(Invincible())
+   *   .insert(PowerUp("speed"));
+   *
+   * // Remove components
+   * world.entity(playerId).remove(Invincible);
+   *
+   * // Despawn entity (deferred until end of frame)
+   * world.entity(bulletId).despawn();
+   * ```
+   */
   public entity(entityId: number): EntityOperations {
     const record = this.entityRecords[entityId];
     const exists = !!record;
@@ -484,17 +832,6 @@ export class World {
         return col?.[record.row] as C | undefined;
       },
 
-      /**
-       * Get a component with mutable access, marking it as changed.
-       * Use this when you intend to modify the component.
-       *
-       * ```ts
-       * const pos = world.entity(id).getMut(Position);
-       * if (pos) {
-       *   pos.x += 10;
-       * }
-       * ```
-       */
       getMut: <C>(token: RegistryToken<C>): C | undefined => {
         if (!exists) return undefined;
         const col = record.archetype.columns.get(token);
@@ -708,6 +1045,27 @@ export class World {
   // Resources
   // ============================================================
 
+  /**
+   * Insert one or more global resources into the world.
+   * Resources are singleton data accessible from any system.
+   *
+   * @param resources - Resource tuples created by calling resource factories
+   * @returns `this` for chaining
+   *
+   * @example
+   * ```ts
+   * // Define resources
+   * const Time = resource(() => ({ delta: 0, elapsed: 0 }));
+   * const Input = resource(() => ({ keys: new Set<string>() }));
+   * const Config = resource((difficulty: number) => ({ difficulty }));
+   *
+   * // Insert resources
+   * world
+   *   .insertResource(Time())
+   *   .insertResource(Input())
+   *   .insertResource(Config(2));
+   * ```
+   */
   public insertResource<T>(...resources: [ResourceToken<T>, T][]): this {
     for (const [token, value] of resources) {
       this.resources.set(token, value);
@@ -715,10 +1073,41 @@ export class World {
     return this;
   }
 
+  /**
+   * Get a resource by its token.
+   *
+   * @param token - Resource token to retrieve
+   * @returns The resource value, or `undefined` if not inserted
+   *
+   * @example
+   * ```ts
+   * const movementSystem = (world: World) => {
+   *   const time = world.getResource(Time);
+   *   if (!time) return;
+   *
+   *   for (const [pos, vel] of world.queryMut(Position, Velocity)) {
+   *     pos.x += vel.x * time.delta;
+   *     pos.y += vel.y * time.delta;
+   *   }
+   * };
+   * ```
+   */
   public getResource<T>(token: ResourceToken<T>): T | undefined {
     return this.resources.get(token) as T | undefined;
   }
 
+  /**
+   * Remove a resource from the world.
+   *
+   * @param token - Resource token to remove
+   * @returns `true` if the resource existed and was removed, `false` otherwise
+   *
+   * @example
+   * ```ts
+   * // Remove a temporary resource
+   * world.removeResource(LoadingScreen);
+   * ```
+   */
   public removeResource<T>(token: ResourceToken<T>): boolean {
     return this.resources.delete(token);
   }
@@ -727,6 +1116,31 @@ export class World {
   // Events
   // ============================================================
 
+  /**
+   * Get a writer for sending events of a specific type.
+   * Events are a way for systems to communicate without tight coupling.
+   *
+   * Events persist for one frame after being sent, allowing multiple
+   * systems to read them.
+   *
+   * @param token - Event token created with `event()`
+   * @returns An {@link EventWriter} for sending events
+   *
+   * @example
+   * ```ts
+   * // Define an event
+   * const DamageEvent = event<{ target: number; amount: number }>();
+   *
+   * // Send events from a system
+   * const combatSystem = (world: World) => {
+   *   const writer = world.getEventWriter(DamageEvent);
+   *
+   *   for (const [entity, attack] of world.query(Entity, Attack)) {
+   *     writer.send({ target: attack.target, amount: attack.damage });
+   *   }
+   * };
+   * ```
+   */
   public getEventWriter<T>(token: EventToken<T>): EventWriter<T> {
     let queue = this.eventQueues.get(token) as EventQueue<T> | undefined;
     if (!queue) {
@@ -736,6 +1150,28 @@ export class World {
     return new EventWriter(queue);
   }
 
+  /**
+   * Get a reader for receiving events of a specific type.
+   * Events are available for one frame after being sent.
+   *
+   * @param token - Event token created with `event()`
+   * @returns An {@link EventReader} for reading events
+   *
+   * @example
+   * ```ts
+   * // Read events in another system
+   * const healthSystem = (world: World) => {
+   *   const reader = world.getEventReader(DamageEvent);
+   *
+   *   for (const event of reader.read()) {
+   *     const health = world.entity(event.target).getMut(Health);
+   *     if (health) {
+   *       health.current -= event.amount;
+   *     }
+   *   }
+   * };
+   * ```
+   */
   public getEventReader<T>(token: EventToken<T>): EventReader<T> {
     let queue = this.eventQueues.get(token) as EventQueue<T> | undefined;
     if (!queue) {
