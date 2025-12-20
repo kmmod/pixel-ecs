@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/43</span>
+                <span class='fraction'>0/44</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/39</span>
+                <span class='fraction'>0/40</span>
             </div>
         
             
@@ -157,7 +157,8 @@
 <a name='L92'></a><a href='#L92'>92</a>
 <a name='L93'></a><a href='#L93'>93</a>
 <a name='L94'></a><a href='#L94'>94</a>
-<a name='L95'></a><a href='#L95'>95</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -228,6 +229,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -258,10 +260,10 @@
  * Use queryMut when modifying, query for read-only access.
  */
 &nbsp;
-import { World, Entity } from "../ecs/World";
-import { component } from "../ecs/Registry";
-import { Update } from "../ecs/Systems";
-import { Without } from "../ecs/Query";
+import { World, Entity } from "@ecs/World";
+import { component } from "@ecs/Registry";
+import { Update } from "@ecs/Systems";
+import { Without } from "@ecs/Query";
 &nbsp;
 // Define components
 const <span class="cstat-no" title="statement not covered" >Position = component(<span class="fstat-no" title="function not covered" >(x</span>: number, y: number) =&gt; (<span class="cstat-no" title="statement not covered" >{ x, y }))</span>;</span>
@@ -270,14 +272,14 @@ const <span class="cstat-no" title="statement not covered" >Health = component(<
 const <span class="cstat-no" title="statement not covered" >Enemy = component(<span class="fstat-no" title="function not covered" >() =&gt; (<span class="cstat-no" title="statement not covered" >{</span>}))</span>;</span>
 &nbsp;
 // Movement system - uses queryMut to track all entities with Position and Velocity as 'changed'
-const movementSystem = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(w</span>orld: World) =&gt; {</span>
+const movementUpdate = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(w</span>orld: World) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  for (const [pos, vel] of world.queryMut(Position, Velocity)) {</span>
 <span class="cstat-no" title="statement not covered" >    pos.x += vel.x;</span>
 <span class="cstat-no" title="statement not covered" >    pos.y += vel.y;</span>
   }
 };
 &nbsp;
-const withoutKeyword = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(w</span>orld: World) =&gt; {</span>
+const withoutVelocity = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(w</span>orld: World) =&gt; {</span>
   // Query entities with Position but without Velocity
 <span class="cstat-no" title="statement not covered" >  for (const [entity, pos] of world.query(</span>
     Entity,
@@ -298,7 +300,7 @@ const debugSystem = <span class="cstat-no" title="statement not covered" ><span 
 };
 &nbsp;
 // Query with change detection
-const positionChangedSystem = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(w</span>orld: World) =&gt; {</span>
+const positionChanged = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(w</span>orld: World) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  for (const [entity, pos] of world.queryChanged(Entity, Position)) {</span>
 <span class="cstat-no" title="statement not covered" >    console.log(`Entity ${entity} moved to (${pos.x}, ${pos.y})`);</span>
   }
@@ -323,8 +325,9 @@ export const queryExample = <span class="cstat-no" title="statement not covered"
   const world = <span class="cstat-no" title="statement not covered" >new World();</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  world.addSystem(Update, debugSystem);</span>
-<span class="cstat-no" title="statement not covered" >  world.addSystem(Update, movementSystem);</span>
-<span class="cstat-no" title="statement not covered" >  world.addSystem(Update, positionChangedSystem);</span>
+<span class="cstat-no" title="statement not covered" >  world.addSystem(Update, movementUpdate);</span>
+<span class="cstat-no" title="statement not covered" >  world.addSystem(Update, withoutVelocity);</span>
+<span class="cstat-no" title="statement not covered" >  world.addSystem(Update, positionChanged);</span>
 <span class="cstat-no" title="statement not covered" >  world.addSystem(Update, onEnemySpawned);</span>
 <span class="cstat-no" title="statement not covered" >  world.addSystem(Update, onHealthRemoved);</span>
 &nbsp;
@@ -352,7 +355,7 @@ export const queryExample = <span class="cstat-no" title="statement not covered"
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-12-20T17:57:01.892Z
+                at 2025-12-20T19:38:28.548Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

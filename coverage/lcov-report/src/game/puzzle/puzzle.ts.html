@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/game/renderer/renderer.ts</title>
+    <title>Code coverage report for src/game/puzzle/puzzle.ts</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../../prettify.css" />
     <link rel="stylesheet" href="../../../base.css" />
@@ -19,13 +19,13 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../../index.html">All files</a> / <a href="index.html">src/game/renderer</a> renderer.ts</h1>
+        <h1><a href="../../../index.html">All files</a> / <a href="index.html">src/game/puzzle</a> puzzle.ts</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/5</span>
+                <span class='fraction'>0/12</span>
             </div>
         
             
@@ -39,14 +39,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/2</span>
+                <span class='fraction'>0/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/4</span>
+                <span class='fraction'>0/12</span>
             </div>
         
             
@@ -103,55 +103,55 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { WebGLRenderer, Scene, OrthographicCamera } from "three";
-import type { OrbitControls } from "three/examples/jsm/Addons.js";
-import { resource } from "@ecs/Registry";
-import { Render, Startup } from "@ecs/Systems";
-import type { World } from "@ecs/World";
-import { setupRenderer } from "./setup";
-import { updateRenderer } from "./update";
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { World } from "@ecs/World";
+import { event } from "@ecs/Registry";
 &nbsp;
-export interface RendererParams {
-  container: HTMLElement;
-  renderer: WebGLRenderer;
-  camera: OrthographicCamera;
-  controls: OrbitControls;
-  scene: Scene;
+import sprite from "/test-sprite-01.png";
+import type { EventReader } from "@ecs/Event";
+import { Startup, Update } from "@ecs/Systems";
+&nbsp;
+export interface PuzzleEventProps {
+  file: string;
 }
+const <span class="cstat-no" title="statement not covered" >PuzzleEvent = event&lt;PuzzleEventProps&gt;();</span>
 &nbsp;
-export const <span class="cstat-no" title="statement not covered" >RendererData = resource(<span class="fstat-no" title="function not covered" >(p</span>arams: RendererParams) =&gt; (<span class="cstat-no" title="statement not covered" >{</span></span>
-  container: params.container,
-  renderer: params.renderer,
-  camera: params.camera,
-  controls: params.controls,
-  scene: params.scene,
-}));
+const initPuzzle = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(w</span>orld: World) =&gt; {</span>
+  const writer = <span class="cstat-no" title="statement not covered" >world.getEventWriter(PuzzleEvent);</span>
+<span class="cstat-no" title="statement not covered" >  writer.send({ file: sprite });</span>
+};
 &nbsp;
-export const rendererBundle = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(w</span>orld: World) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >  world.addSystem(Startup, setupRenderer);</span>
-  // world.addSystem(Update, addMeshesTimer);
-  // world.addSystem(Update, addMeshes);
-<span class="cstat-no" title="statement not covered" >  world.addSystem(Render, updateRenderer);</span>
+let puzzleEventReader: EventReader&lt;PuzzleEventProps&gt; | null = <span class="cstat-no" title="statement not covered" >null;</span>
+const generatePuzzle = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(w</span>orld: World) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  puzzleEventReader ??= world.getEventReader(PuzzleEvent);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  for (const event of puzzleEventReader.read()) {</span>
+<span class="cstat-no" title="statement not covered" >    console.log("Generating puzzle from file:", event.file);</span>
+  }
+};
+&nbsp;
+export const puzzleBundle = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(w</span>orld: World) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  world.addSystem(Startup, initPuzzle);</span>
+<span class="cstat-no" title="statement not covered" >  world.addSystem(Update, generatePuzzle);</span>
 };
 &nbsp;</pre></td></tr></table></pre>
 
@@ -160,7 +160,7 @@ export const rendererBundle = <span class="cstat-no" title="statement not covere
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-12-20T19:38:28.548Z
+                at 2025-12-20T19:38:28.564Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

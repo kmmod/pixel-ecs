@@ -1,9 +1,11 @@
 import type { World } from "@ecs/World";
 import { event } from "@ecs/Registry";
-
-import sprite from "/test-sprite-01.png";
 import type { EventReader } from "@ecs/Event";
 import { Startup, Update } from "@ecs/Systems";
+
+import sprite from "/test-sprite-01.png";
+import { BoxGeometry, MeshBasicMaterial, Mesh } from "three";
+import { MeshComponent, Transform } from "@game/renderer/components";
 
 export interface PuzzleEventProps {
   file: string;
@@ -21,6 +23,11 @@ const generatePuzzle = (world: World) => {
 
   for (const event of puzzleEventReader.read()) {
     console.log("Generating puzzle from file:", event.file);
+
+    const geometry = new BoxGeometry(1, 1, 1);
+    const material = new MeshBasicMaterial({ color: 0x00ff00 });
+    const cube = new Mesh(geometry, material);
+    world.spawn(MeshComponent(cube), Transform());
   }
 };
 

@@ -1,10 +1,7 @@
 import {
   AmbientLight,
-  BoxGeometry,
   Color,
   DirectionalLight,
-  Mesh,
-  MeshBasicMaterial,
   OrthographicCamera,
   Scene,
   WebGLRenderer,
@@ -27,11 +24,6 @@ export const setupRenderer = (world: World) => {
   const controls = createControls(camera, renderer);
 
   window.addEventListener("resize", () => resizeListener(camera, renderer));
-
-  const geometry = new BoxGeometry(1, 1, 1);
-  const material = new MeshBasicMaterial({ color: 0x00ff00 });
-  const cube = new Mesh(geometry, material);
-  scene.add(cube);
 
   world.insertResource(
     RendererData({
