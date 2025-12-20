@@ -5,9 +5,9 @@
  * only during specific states (menu, playing, paused, etc.)
  */
 
-import { World } from "../ecs/World";
-import { state, OnEnter, OnExit } from "../ecs/State";
-import { Update } from "../ecs/Systems";
+import { World } from "@ecs/World";
+import { state, OnEnter, OnExit } from "@ecs/State";
+import { Update } from "@ecs/Systems";
 
 // Define available states
 const GameStates = {

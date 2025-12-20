@@ -5,10 +5,10 @@
  * Each reader sees each event exactly once.
  */
 
-import { World } from "../ecs/World";
-import { event } from "../ecs/Registry";
-import { Update } from "../ecs/Systems";
-import type { EventReader } from "../ecs/Event";
+import { World } from "@ecs/World";
+import { event } from "@ecs/Registry";
+import { Update } from "@ecs/Systems";
+import type { EventReader } from "@ecs/Event";
 
 // Define event types
 const DamageEvent = event<{ target: number; amount: number }>();

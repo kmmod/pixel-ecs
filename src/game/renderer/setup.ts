@@ -5,13 +5,15 @@ import {
   DirectionalLight,
   Mesh,
   MeshBasicMaterial,
-  PerspectiveCamera,
+  OrthographicCamera,
   Scene,
   WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
-import { World } from "../../ecs/World";
+import { World } from "@ecs/World";
 import { RendererData } from "./renderer";
+
+const frustumSize = 2;
 
 export const setupRenderer = (world: World) => {
   const container = document.getElementById("app");
@@ -42,8 +44,19 @@ export const setupRenderer = (world: World) => {
   );
 };
 
-const resizeListener = (camera: PerspectiveCamera, renderer: WebGLRenderer) => {
-  camera.aspect = window.innerWidth / window.innerHeight;
+const resizeListener = (
+  camera: OrthographicCamera,
+  renderer: WebGLRenderer,
+) => {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const aspect = width / height;
+
+  camera.left = (-frustumSize * aspect) / 2;
+  camera.right = (frustumSize * aspect) / 2;
+  camera.top = frustumSize / 2;
+  camera.bottom = -frustumSize / 2;
+
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 };
@@ -62,10 +75,13 @@ const createScene = (): Scene => {
   return scene;
 };
 
-const createCamera = (): PerspectiveCamera => {
-  const camera = new PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
+const createCamera = (): OrthographicCamera => {
+  const aspect = window.innerWidth / window.innerHeight;
+  const camera = new OrthographicCamera(
+    (-frustumSize * aspect) / 2,
+    (frustumSize * aspect) / 2,
+    frustumSize / 2,
+    -frustumSize / 2,
     0.1,
     1000,
   );
@@ -81,11 +97,13 @@ const createRenderer = (container: HTMLElement): WebGLRenderer => {
 };
 
 const createControls = (
-  camera: PerspectiveCamera,
+  camera: OrthographicCamera,
   renderer: WebGLRenderer,
 ): OrbitControls => {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
+  controls.enableRotate = false;
+  controls.zoomToCursor = true;
   return controls;
 };

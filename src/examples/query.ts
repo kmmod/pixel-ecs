@@ -5,10 +5,10 @@
  * Use queryMut when modifying, query for read-only access.
  */
 
-import { World, Entity } from "../ecs/World";
-import { component } from "../ecs/Registry";
-import { Update } from "../ecs/Systems";
-import { Without } from "../ecs/Query";
+import { World, Entity } from "@ecs/World";
+import { component } from "@ecs/Registry";
+import { Update } from "@ecs/Systems";
+import { Without } from "@ecs/Query";
 
 // Define components
 const Position = component((x: number, y: number) => ({ x, y }));

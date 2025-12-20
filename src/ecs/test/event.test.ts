@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { World } from "../../ecs/World";
-import { event } from "../../ecs/Registry";
+import { World } from "@ecs/World";
+import { event } from "@ecs/Registry";
 
 const TestEvent = event<{ value: number }>();
 

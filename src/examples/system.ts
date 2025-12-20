@@ -5,9 +5,9 @@
  * Run conditions control when systems execute.
  */
 
-import { World } from "../ecs/World";
-import { resource } from "../ecs/Registry";
-import { Startup, PreUpdate, Update, PostUpdate, Render } from "../ecs/Systems";
+import { World } from "@ecs/World";
+import { resource } from "@ecs/Registry";
+import { Startup, PreUpdate, Update, PostUpdate, Render } from "@ecs/Systems";
 
 // Resources for conditions
 const GamePaused = resource(() => ({ value: false }));

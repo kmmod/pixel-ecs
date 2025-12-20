@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { World } from "../../ecs/World";
-import { resource } from "../../ecs/Registry";
+import { World } from "@ecs/World";
+import { resource } from "@ecs/Registry";
 
 const Time = resource(() => ({ delta: 0, elapsed: 0 }));
 const Config = resource((difficulty: number) => ({ difficulty }));

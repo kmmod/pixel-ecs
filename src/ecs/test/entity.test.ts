@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { World, Entity } from "../../ecs/World";
-import { component } from "../../ecs/Registry";
+import { World, Entity } from "@ecs/World";
+import { component } from "@ecs/Registry";
 
 const Position = component((x: number, y: number) => ({ x, y }));
 const Velocity = component((x: number, y: number) => ({ x, y }));

@@ -5,9 +5,9 @@
  * Use for time, input, configuration, assets, etc.
  */
 
-import { World } from "../ecs/World";
-import { resource } from "../ecs/Registry";
-import { Update } from "../ecs/Systems";
+import { World } from "@ecs/World";
+import { resource } from "@ecs/Registry";
+import { Update } from "@ecs/Systems";
 
 // Define resources
 const Time = resource(() => ({

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { World, Entity } from "../../ecs/World";
-import { component } from "../../ecs/Registry";
-import { Without } from "../Query";
+import { World, Entity } from "@ecs/World";
+import { component } from "@ecs/Registry";
+import { Without } from "@ecs/Query";
 
 const Position = component((x: number, y: number) => ({ x, y }));
 const Velocity = component((x: number, y: number) => ({ x, y }));

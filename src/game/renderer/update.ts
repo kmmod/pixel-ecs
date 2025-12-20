@@ -1,8 +1,8 @@
-import { Time } from "../../app/App";
-import type { World } from "../../ecs/World";
-import { event } from "../../ecs/Registry";
+import { Time } from "@app/App";
+import type { World } from "@ecs/World";
+import { event } from "@ecs/Registry";
 import { RendererData } from "./renderer";
-import type { EventReader } from "../../ecs/Event";
+import type { EventReader } from "@ecs/Event";
 
 interface AddMeshesEvent {
   value: number;

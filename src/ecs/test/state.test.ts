@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { World } from "../../ecs/World";
-import { state, OnEnter, OnExit } from "../../ecs/State";
+import { World } from "@ecs/World";
+import { state, OnEnter, OnExit } from "@ecs/State";
 
 const GameStates = {
   Menu: "menu",

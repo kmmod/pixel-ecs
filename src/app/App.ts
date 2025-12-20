@@ -1,5 +1,5 @@
-import { resource } from "../ecs/Registry";
-import { World } from "../ecs/World";
+import { resource } from "@ecs/Registry";
+import { World } from "@ecs/World";
 
 export const Time = resource(() => ({ delta: 0, elapsed: 0 }));
 

@@ -1,12 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { World } from "../../ecs/World";
-import {
-  Startup,
-  PreUpdate,
-  Update,
-  PostUpdate,
-  Render,
-} from "../../ecs/Systems";
+import { World } from "@ecs/World";
+import { Startup, PreUpdate, Update, PostUpdate, Render } from "@ecs/Systems";
 
 describe("World.init", () => {
   let world: World;

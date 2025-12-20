@@ -1,16 +1,7 @@
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vite";
 import path from "path";
 
 export default defineConfig({
-  test: {
-    coverage: {
-      provider: "v8",
-      reporter: ["text", "html", "lcov"],
-      include: ["src/**/*.ts"],
-      exclude: ["src/**/*.test.ts", "src/**/*.d.ts", "src/**/index.ts"],
-    },
-  },
-
   resolve: {
     alias: {
       "@app": path.resolve(__dirname, "./src/app"),
