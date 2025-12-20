@@ -11,6 +11,7 @@ export class App {
 
   constructor(world: World) {
     this.world = world;
+    this.world.insertResource(Time());
   }
 
   public async runAsync(): Promise<void> {
