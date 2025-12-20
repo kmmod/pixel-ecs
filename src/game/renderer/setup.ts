@@ -11,7 +11,7 @@ import {
 } from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { World } from "../../ecs/World";
-import { RendererData } from "./rendererPlugin";
+import { RendererData } from "./renderer";
 
 export const setupRenderer = (world: World) => {
   const container = document.getElementById("app");
@@ -23,6 +23,8 @@ export const setupRenderer = (world: World) => {
   const camera = createCamera();
   const renderer = createRenderer(container);
   const controls = createControls(camera, renderer);
+
+  window.addEventListener("resize", () => resizeListener(camera, renderer));
 
   const geometry = new BoxGeometry(1, 1, 1);
   const material = new MeshBasicMaterial({ color: 0x00ff00 });
@@ -38,6 +40,12 @@ export const setupRenderer = (world: World) => {
       scene,
     }),
   );
+};
+
+const resizeListener = (camera: PerspectiveCamera, renderer: WebGLRenderer) => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
 };
 
 const createScene = (): Scene => {

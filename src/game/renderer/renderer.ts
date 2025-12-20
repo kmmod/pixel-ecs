@@ -1,10 +1,10 @@
 import type { WebGLRenderer, PerspectiveCamera, Scene } from "three";
 import type { OrbitControls } from "three/examples/jsm/Addons.js";
 import { resource } from "../../ecs/Registry";
-import { Render, Startup, Update } from "../../ecs/Systems";
+import { Render, Startup } from "../../ecs/Systems";
 import type { World } from "../../ecs/World";
 import { setupRenderer } from "./setup";
-import { addMeshes, addMeshesTimer, updateRenderer } from "./update";
+import { updateRenderer } from "./update";
 
 export interface RendererParams {
   container: HTMLElement;
@@ -22,9 +22,9 @@ export const RendererData = resource((params: RendererParams) => ({
   scene: params.scene,
 }));
 
-export const rendererPlugin = (world: World) => {
+export const createRenderer = (world: World) => {
   world.addSystem(Startup, setupRenderer);
-  world.addSystem(Update, addMeshesTimer);
-  world.addSystem(Update, addMeshes);
+  // world.addSystem(Update, addMeshesTimer);
+  // world.addSystem(Update, addMeshes);
   world.addSystem(Render, updateRenderer);
 };
