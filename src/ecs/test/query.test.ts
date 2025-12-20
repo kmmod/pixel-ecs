@@ -4,6 +4,7 @@ import { component } from "../../ecs/Registry";
 
 const Position = component((x: number, y: number) => ({ x, y }));
 const Velocity = component((x: number, y: number) => ({ x, y }));
+const Health = component((current: number) => ({ current }));
 
 describe("World.query", () => {
   let world: World;
@@ -221,5 +222,42 @@ describe("World.queryRemoved", () => {
 
     const removed = world.queryRemoved(Position);
     expect(removed).not.toContain(id);
+  });
+});
+
+describe("World.registerArchetype", () => {
+  let world: World;
+
+  beforeEach(() => {
+    world = new World();
+  });
+
+  it("pre-registers archetype", () => {
+    world.registerArchetype(Position, Velocity);
+
+    // Spawning with same signature should reuse archetype
+    const id = world.spawn(Position(1, 1), Velocity(2, 2));
+
+    expect(world.entity(id).has(Position, Velocity)).toBe(true);
+  });
+
+  it("chains multiple registrations", () => {
+    world
+      .registerArchetype(Position)
+      .registerArchetype(Position, Velocity)
+      .registerArchetype(Position, Velocity, Health);
+
+    const id = world.spawn(Position(0, 0), Velocity(1, 1), Health(100));
+
+    expect(world.entity(id).has(Position, Velocity, Health)).toBe(true);
+  });
+
+  it("does not duplicate existing archetypes", () => {
+    world.registerArchetype(Position, Velocity);
+    world.registerArchetype(Position, Velocity); // same signature
+
+    world.spawn(Position(1, 1), Velocity(2, 2));
+
+    expect(world.query(Entity, Position, Velocity)).toHaveLength(1);
   });
 });
