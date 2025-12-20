@@ -5,7 +5,7 @@ import { Render, Startup, Update } from "@ecs/Systems";
 import type { World } from "@ecs/World";
 import { setupRenderer } from "./setup";
 import { updateRenderer } from "./update";
-import { meshAdded } from "./meshesUpdate";
+import { meshAdded, meshRemoved, meshUpdated } from "./meshesUpdate";
 
 export interface RendererParams {
   container: HTMLElement;
@@ -27,6 +27,6 @@ export const rendererBundle = (world: World) => {
   world.addSystem(Startup, setupRenderer);
   // world.addSystem(Update, addMeshesTimer);
   // world.addSystem(Update, addMeshes);
-  world.addSystem(Update, meshAdded);
+  world.addSystem(Update, [meshAdded, meshRemoved, meshUpdated]);
   world.addSystem(Render, updateRenderer);
 };
