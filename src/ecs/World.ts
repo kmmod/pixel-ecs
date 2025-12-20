@@ -37,6 +37,7 @@ type EntityRecord = {
 
 interface EntityOperations {
   get: <C>(token: RegistryToken<C>) => C | undefined;
+  getMut: <C>(token: RegistryToken<C>) => C | undefined;
   has: (...types: Queryable[]) => boolean;
   insert: (...components: ComponentTuple[]) => EntityOperations;
   remove: (...types: Queryable[]) => EntityOperations;
@@ -75,6 +76,10 @@ export class World {
   private removedThisFrame = new Map<Queryable, Set<number>>();
   private addedLastFrame = new Map<Queryable, Set<number>>();
   private removedLastFrame = new Map<Queryable, Set<number>>();
+
+  // Mutation tracking (for queryChanged)
+  private mutatedThisFrame = new Map<Queryable, Set<number>>();
+  private mutatedLastFrame = new Map<Queryable, Set<number>>();
 
   // Deferred operations
   private pendingDespawns = new Set<number>();
@@ -121,6 +126,19 @@ export class World {
   public registerArchetype(...tokens: Queryable[]): this {
     this.getOrCreateArchetype(new Set(tokens));
     return this;
+  }
+
+  // ============================================================
+  // Mutation tracking helpers
+  // ============================================================
+
+  private markMutated(entityId: number, token: Queryable): void {
+    let set = this.mutatedThisFrame.get(token);
+    if (!set) {
+      set = new Set();
+      this.mutatedThisFrame.set(token, set);
+    }
+    set.add(entityId);
   }
 
   // ============================================================
@@ -260,6 +278,52 @@ export class World {
     return results;
   }
 
+  /**
+   * Query for components with mutable access.
+   * All returned components are marked as mutated for change detection.
+   * Use this when you intend to modify the components.
+   *
+   * ```ts
+   * for (const [entity, pos, vel] of world.queryMut(Entity, Position, Velocity)) {
+   *   pos.x += vel.x * delta;
+   *   pos.y += vel.y * delta;
+   * }
+   * // Later, another system can detect changes:
+   * for (const [entity, pos] of world.queryChanged(Entity, Position)) {
+   *   // React to position changes
+   * }
+   * ```
+   */
+  public queryMut<T extends Queryable[]>(...types: T): QueryResults<T>[] {
+    const archetypes = this.getMatchingArchetypes(types);
+    const results: QueryResults<T>[] = [];
+
+    // Track which component types (excluding Entity) we're mutating
+    const componentTypes = types.filter((t) => t !== Entity);
+
+    for (const archetype of archetypes) {
+      const len = archetype.entities.length;
+
+      const columns = types.map((t) =>
+        t === Entity ? archetype.entities : archetype.columns.get(t)!,
+      );
+
+      for (let row = 0; row < len; row++) {
+        const entityId = archetype.entities[row];
+
+        // Mark all queried component types as mutated for this entity
+        for (const token of componentTypes) {
+          this.markMutated(entityId, token);
+        }
+
+        const tuple = columns.map((col) => col[row]) as QueryResults<T>;
+        results.push(tuple);
+      }
+    }
+
+    return results;
+  }
+
   public queryAdded<T extends Queryable[]>(...types: T): QueryResults<T>[] {
     const componentTypes = types.filter((t) => t !== Entity);
     if (componentTypes.length === 0) return [];
@@ -278,6 +342,43 @@ export class World {
 
     return this.query(...types).filter(([entity]) =>
       addedEntities.has(entity as number),
+    );
+  }
+
+  /**
+   * Query for entities where any of the specified components were
+   * accessed mutably (via queryMut or getMut) last frame.
+   *
+   * Note: This tracks mutable *access*, not actual value changes.
+   * There may be false positives if you get a mutable reference
+   * but don't actually modify the component.
+   *
+   * ```ts
+   * for (const [entity, pos] of world.queryChanged(Entity, Position)) {
+   *   console.log(`Entity ${entity} position may have changed`);
+   * }
+   * ```
+   */
+  public queryChanged<T extends Queryable[]>(...types: T): QueryResults<T>[] {
+    const componentTypes = types.filter((t) => t !== Entity);
+    if (componentTypes.length === 0) return [];
+
+    // Collect all entities that had ANY of the queried components mutated
+    const changedEntities = new Set<number>();
+    for (const type of componentTypes) {
+      const mutated = this.mutatedLastFrame.get(type);
+      if (mutated) {
+        for (const entity of mutated) {
+          changedEntities.add(entity);
+        }
+      }
+    }
+
+    if (changedEntities.size === 0) return [];
+
+    // Filter the full query results to only include changed entities
+    return this.query(...types).filter(([entity]) =>
+      changedEntities.has(entity as number),
     );
   }
 
@@ -383,6 +484,28 @@ export class World {
         return col?.[record.row] as C | undefined;
       },
 
+      /**
+       * Get a component with mutable access, marking it as changed.
+       * Use this when you intend to modify the component.
+       *
+       * ```ts
+       * const pos = world.entity(id).getMut(Position);
+       * if (pos) {
+       *   pos.x += 10;
+       * }
+       * ```
+       */
+      getMut: <C>(token: RegistryToken<C>): C | undefined => {
+        if (!exists) return undefined;
+        const col = record.archetype.columns.get(token);
+        if (!col) return undefined;
+
+        // Mark as mutated
+        this.markMutated(entityId, token);
+
+        return col[record.row] as C | undefined;
+      },
+
       has: (...types: Queryable[]): boolean => {
         if (!exists) return false;
         return types.every((t) => record.archetype.signature.has(t));
@@ -403,6 +526,8 @@ export class World {
           // Just update values in place
           for (const [token, value] of components) {
             oldArchetype.columns.get(token)![oldRow] = value;
+            // Mark as mutated since we're updating
+            this.markMutated(entityId, token);
           }
           return ops;
         }
@@ -572,8 +697,11 @@ export class World {
   private advanceChangeTracking(): void {
     this.addedLastFrame = this.addedThisFrame;
     this.removedLastFrame = this.removedThisFrame;
+    this.mutatedLastFrame = this.mutatedThisFrame;
+
     this.addedThisFrame = new Map();
     this.removedThisFrame = new Map();
+    this.mutatedThisFrame = new Map();
   }
 
   // ============================================================
