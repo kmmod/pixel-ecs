@@ -59,15 +59,13 @@ interface EntityOperations {
 
   /**
    * Insert or update components on the entity.
-   * Returns self for chaining.
    */
-  insert: (...components: ComponentTuple[]) => EntityOperations;
+  insert: (...components: ComponentTuple[]) => void;
 
   /**
    * Remove components from the entity by their tokens.
-   * Returns self for chaining.
    */
-  remove: (...types: Queryable[]) => EntityOperations;
+  remove: (...types: Queryable[]) => void;
 
   /**
    * Get all component values for debugging purposes.
@@ -849,7 +847,7 @@ export class World {
       },
 
       insert: (...components: ComponentTuple[]) => {
-        if (!exists) return ops;
+        if (!exists) return;
 
         const oldArchetype = record.archetype;
         const oldRow = record.row;
@@ -866,7 +864,7 @@ export class World {
             // Mark as mutated since we're updating
             this.markMutated(entityId, token);
           }
-          return ops;
+          return;
         }
 
         // Need to move to new archetype
@@ -906,11 +904,11 @@ export class World {
           this.addedThisFrame.get(token)!.add(entityId);
         }
 
-        return ops;
+        return;
       },
 
       remove: (...types: Queryable[]) => {
-        if (!exists) return ops;
+        if (!exists) return;
 
         const oldArchetype = record.archetype;
         const oldRow = record.row;
@@ -919,7 +917,7 @@ export class World {
         const typesToRemove = types.filter((t) =>
           oldArchetype.signature.has(t),
         );
-        if (typesToRemove.length === 0) return ops;
+        if (typesToRemove.length === 0) return;
 
         // Calculate new signature
         const newSignature = new Set(oldArchetype.signature);
@@ -962,7 +960,7 @@ export class World {
           this.entityRecords[entityId] = null;
         }
 
-        return ops;
+        return;
       },
 
       inspect: () => {
