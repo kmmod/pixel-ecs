@@ -24,6 +24,11 @@ const Transform = component((x: number = 0, y: number = 0) => ({
   y,
 }));
 
+const Velocity = component((x: number = 0, y: number = 0) => ({
+  x,
+  y,
+}));
+
 const RemoveEvent = event<{ entity: number }>();
 
 const movementSystem = (world: World) => {
@@ -57,6 +62,31 @@ const lessThanFiveEntities = (world: World) => {
   return query.length < 5;
 };
 
+const updateEntities = (world: World) => {
+  const t0 = performance.now();
+  const query = world.query(Entity, Transform);
+  for (const [entity, transform] of query) {
+    transform.x += 1;
+    transform.y += 1;
+  }
+
+  // world.spawnBatch(5000, () => [Transform(0, 0), Velocity(5, 5)]);
+
+  const entityCount = 500;
+  for (let i = 0; i < entityCount; i++) {
+    const ent = world.spawn(Transform(0, 0));
+    world.entity(ent).insert(Velocity(5, 5));
+
+    if (Math.random() < 0.5) {
+      world.entity(ent).despawn();
+    }
+  }
+
+  // console.log(
+  //   `Updated ${query.length} entities in ${performance.now() - t0} ms`,
+  // );
+};
+
 export class Game {
   constructor() {
     const world = new World();
@@ -65,10 +95,22 @@ export class Game {
     world.insertState(GameState);
     world.insertResource(Input());
 
-    world.spawn(Transform(0, 0));
+    world.registerArchetype(Transform);
+    world.registerArchetype(Transform, Velocity);
 
-    world.addSystem(Update, movementSystem);
-    world.addSystem(Update, logSystem, { when: [lessThanFiveEntities] });
+    const t0 = performance.now();
+    const entityCount = 5000;
+    for (let i = 0; i < entityCount; i++) {
+      world.spawn(Transform(0, 0));
+    }
+    console.log(
+      `Spawned ${entityCount} entities in ${performance.now() - t0} ms`,
+    );
+
+    world.addSystem(Update, updateEntities);
+
+    // world.addSystem(Update, movementSystem);
+    // world.addSystem(Update, logSystem, { when: [lessThanFiveEntities] });
 
     world.addSystem(OnExit(GameState.Menu), () => {
       console.log("Game quits menu!");
@@ -82,6 +124,6 @@ export class Game {
 
     setTimeout(() => {
       app.stop();
-    }, 100);
+    }, 500);
   }
 }
