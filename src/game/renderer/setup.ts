@@ -3,6 +3,7 @@ import {
   Color,
   DirectionalLight,
   OrthographicCamera,
+  Raycaster,
   Scene,
   WebGLRenderer,
 } from "three";
@@ -22,6 +23,7 @@ export const setupRenderer = (world: World) => {
   const camera = createCamera();
   const renderer = createRenderer(container);
   const controls = createControls(camera, renderer);
+  const raycast = new Raycaster();
 
   window.addEventListener("resize", () => resizeListener(camera, renderer));
 
@@ -32,6 +34,8 @@ export const setupRenderer = (world: World) => {
       camera,
       controls,
       scene,
+      raycast,
+      raycastResult: [],
     }),
   );
 };
@@ -93,8 +97,6 @@ const createControls = (
   renderer: WebGLRenderer,
 ): OrbitControls => {
   const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.05;
   controls.enableRotate = false;
   controls.zoomToCursor = true;
   return controls;

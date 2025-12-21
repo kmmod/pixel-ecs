@@ -557,6 +557,8 @@ export class World {
    * Query for entities that had any of the specified components added last frame.
    * Useful for initialization logic when components are first attached.
    *
+   * Requires Entity as the first element in the tuple.
+   *
    * @param types - Component tokens to query for
    * @returns Array of tuples for entities with newly added components
    *
@@ -600,6 +602,8 @@ export class World {
    * **Note:** This tracks mutable *access*, not actual value changes.
    * There may be false positives if you get a mutable reference but don't
    * actually modify the component.
+   *
+   * Requires Entity as the first element in the tuple.
    *
    * @param types - Component tokens to query for
    * @returns Array of tuples for entities with potentially changed components

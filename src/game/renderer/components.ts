@@ -14,3 +14,13 @@ export const Transform = component((props?: TransformProps) => ({
 }));
 
 export const MeshComponent = component((mesh: Mesh) => mesh);
+
+export interface CameraAnimationProps {
+  targetZoom?: number;
+  speed?: number;
+}
+
+export const CameraAnimation = component((params?: CameraAnimationProps) => ({
+  targetZoom: params?.targetZoom ?? 1,
+  speed: params?.speed ?? 1,
+}));
