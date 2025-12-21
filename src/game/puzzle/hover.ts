@@ -3,6 +3,7 @@ import { component } from "@ecs/Registry";
 import { World, Entity } from "@ecs/World";
 import { MeshComponent, Transform } from "@game/renderer/components";
 import { RendererData } from "@game/renderer/renderer";
+import { hoverScale, hoverSpeed, Pixel, pixelScale } from "./pixel";
 
 export const Hovered = component(() => ({}));
 
@@ -22,7 +23,7 @@ export const hoverPuzzle = (world: World) => {
 
   const raycastId = rendererData.raycastResult[0] ?? null;
 
-  const query = world.query(Entity, MeshComponent);
+  const query = world.query(Entity, MeshComponent, Pixel);
   for (const [entity] of query) {
     if (raycastId === entity) {
       world.entity(entity).insert(Hovered());
@@ -37,14 +38,16 @@ export const hoverAnimation = (world: World) => {
   for (const [entity] of added) {
     world
       .entity(entity)
-      .insert(HoverAnimation({ targetScale: 0.8, speed: 5.0 }));
+      .insert(HoverAnimation({ targetScale: hoverScale, speed: hoverSpeed }));
   }
 
   const removed = world.queryRemoved(Entity, Hovered);
   for (const entity of removed) {
     world
       .entity(entity)
-      .insert(HoverAnimation({ targetScale: 0.98, speed: 5.0 }));
+      .insert(
+        HoverAnimation({ targetScale: pixelScale, speed: hoverSpeed * 0.5 }),
+      );
   }
 };
 

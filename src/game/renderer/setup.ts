@@ -59,7 +59,7 @@ const resizeListener = (
 
 const createScene = (): Scene => {
   const scene = new Scene();
-  scene.background = new Color(0x20232a);
+  scene.background = new Color("#41494f");
 
   const ambientLight = new AmbientLight(0xffffff, 0.1);
   scene.add(ambientLight);
@@ -81,7 +81,7 @@ const createCamera = (): OrthographicCamera => {
     0.1,
     1000,
   );
-  camera.position.set(0, 0, -5);
+  camera.position.set(0, 0, 5);
   return camera;
 };
 
