@@ -78,7 +78,7 @@ const createCamera = (): OrthographicCamera => {
     (frustumSize * aspect) / 2,
     frustumSize / 2,
     -frustumSize / 2,
-    0.1,
+    0.01,
     1000,
   );
   camera.position.set(0, 0, 5);

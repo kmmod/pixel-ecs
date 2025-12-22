@@ -1,11 +1,6 @@
 import type { EventReader } from "@ecs/Event";
 import { World } from "@ecs/World";
-import {
-  CameraAnimation,
-  MaterialData,
-  MeshRef,
-  Transform,
-} from "@game/renderer/components";
+import { CameraAnimation, MeshRef } from "@game/renderer/components";
 import {
   Vector3,
   BoxGeometry,
@@ -19,7 +14,6 @@ import {
 } from "three";
 import { type FileEventProps, FileEvent } from "./puzzle";
 import {
-  Coordinate,
   Pixel,
   pixelScale,
   rgbToHex,
@@ -62,40 +56,27 @@ const spawnPixels = (world: World, pixels: PixelProps[]) => {
     const geometry = new BoxGeometry(1, 1, 1);
     const material = new MeshBasicMaterial({ color });
     const cube = new Mesh(geometry, material);
-    const position = new Vector3(pixel.cell.x, pixel.cell.y, 0);
-    const scale = new Vector3().setScalar(pixelScale);
-    world.spawn(
-      Transform({ position, scale }),
-      MaterialData({ color }),
-      MeshRef({ mesh: cube }),
-      Pixel(pixel),
-    );
+    cube.position.set(pixel.cell.x, pixel.cell.y, 0);
+    cube.scale.setScalar(pixelScale);
+    world.spawn(MeshRef({ mesh: cube }), Pixel(pixel));
   }
 };
 
 const spawnCoordinates = (world: World, coordinates: CoordinateProps[]) => {
   for (const coord of coordinates) {
-    const positionBg = new Vector3(coord.cell.x, coord.cell.y, 1.0); // Slight z offset
-    const positionValue = new Vector3(coord.cell.x, coord.cell.y, 1.1); // Slight z offset
+    const position = new Vector3(coord.cell.x, coord.cell.y, 1.1); // Slight z offset
     const circleA = createCircleMesh(0.75, "#000000");
     const circleB = createCircleMesh(0.7, "#ffffff");
     const number = createNumberSprite(coord.value);
-    world.spawn(
-      Transform({ position: positionBg }),
-      MeshRef({ mesh: circleA }),
-    );
 
-    world.spawn(
-      Transform({ position: positionBg }),
-      MaterialData(),
-      MeshRef({ mesh: circleB }),
-      Coordinate(coord),
-    );
+    circleA.position.copy(position);
+    circleA.add(circleB);
+    circleA.add(number);
 
-    world.spawn(
-      Transform({ position: positionValue }),
-      MeshRef({ mesh: number }),
-    );
+    circleB.position.z += 0.1;
+    number.position.z += 0.2;
+
+    world.spawn(MeshRef({ mesh: circleA }));
   }
 };
 

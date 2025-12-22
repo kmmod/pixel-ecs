@@ -1,7 +1,7 @@
 import { Time } from "@app/App";
 import { component } from "@ecs/Registry";
 import { World, Entity } from "@ecs/World";
-import { Transform } from "@game/renderer/components";
+import { MeshRef } from "@game/renderer/components";
 import { RendererData } from "@game/renderer/renderer";
 import { hoverScale, hoverSpeed, Pixel, pixelScale } from "./pixel";
 
@@ -52,14 +52,16 @@ export const hoverAnimation = (world: World) => {
 export const hoverAnimate = (world: World) => {
   const time = world.getResource(Time);
 
-  const query = world.queryMut(Entity, Transform, HoverAnimation, Pixel);
-  for (const [entity, transform, hoverAnim] of query) {
-    const current = transform.scale.x;
+  const query = world.queryMut(Entity, MeshRef, HoverAnimation, Pixel);
+  for (const [entity, meshRef, hoverAnim] of query) {
+    const current = meshRef.mesh.scale.x;
     const diff = hoverAnim.targetScale - current;
     if (Math.abs(diff) > 0.01) {
-      transform.scale.setScalar(current + diff * hoverAnim.seed * time.delta);
+      meshRef.mesh.scale.setScalar(
+        current + diff * hoverAnim.seed * time.delta,
+      );
     } else {
-      transform.scale.setScalar(hoverAnim.targetScale);
+      meshRef.mesh.scale.setScalar(hoverAnim.targetScale);
       world.entity(entity).remove(HoverAnimation);
     }
   }

@@ -5,7 +5,7 @@ import {
   PointerButton,
   type PointerActionEventProps,
 } from "@game/input/input";
-import { MaterialData } from "@game/renderer/components";
+import { MeshRef } from "@game/renderer/components";
 import { RendererData } from "@game/renderer/renderer";
 import { Pixel } from "./pixel";
 
@@ -34,9 +34,11 @@ export const changePuzzleColor = (world: World) => {
   const query = world.queryChanged(Entity, Pixel);
 
   for (const [entity, pixel] of query) {
-    const matData = world.entity(entity).getMut(MaterialData);
-    if (matData) {
-      matData.color = pixel.marked ? black : white;
+    const meshRef = world.entity(entity).getMut(MeshRef);
+    const material = meshRef?.mesh.material;
+    if (material) {
+      material.color.set(pixel.marked ? black : white);
+      material.needsUpdate = true;
     }
   }
 };
