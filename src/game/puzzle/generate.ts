@@ -14,6 +14,7 @@ import {
 } from "three";
 import { type FileEventProps, FileEvent } from "./puzzle";
 import {
+  Coordinate,
   Pixel,
   pixelScale,
   rgbToHex,
@@ -51,7 +52,6 @@ const processFile = (world: World, file: string) => {
 
 const spawnPixels = (world: World, pixels: PixelProps[]) => {
   for (const pixel of pixels) {
-    // TODO: spawn white, using value for testing
     const color = "#ffffff";
     const geometry = new BoxGeometry(1, 1, 1);
     const material = new MeshBasicMaterial({ color });
@@ -76,7 +76,7 @@ const spawnCoordinates = (world: World, coordinates: CoordinateProps[]) => {
     circleB.position.z += 0.1;
     number.position.z += 0.2;
 
-    world.spawn(MeshRef({ mesh: circleA }));
+    world.spawn(MeshRef({ mesh: circleA }), Coordinate(coord));
   }
 };
 

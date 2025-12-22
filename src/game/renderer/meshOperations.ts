@@ -11,10 +11,10 @@ export const meshAdded = (world: World) => {
 
   for (const [entity, meshRef] of query) {
     const mesh = meshRef.mesh;
-    if (mesh instanceof Mesh) {
-      mesh.name = entity.toString();
-      scene.add(mesh);
-    }
+    mesh.traverse((child) => {
+      child.name = entity.toString();
+    });
+    scene.add(mesh);
   }
 };
 
@@ -35,10 +35,16 @@ export const meshRemoved = (world: World) => {
 };
 
 const disposeMesh = (mesh: Mesh) => {
-  mesh.geometry.dispose();
-  if (Array.isArray(mesh.material)) {
-    mesh.material.forEach((mat) => mat.dispose());
-  } else {
-    mesh.material.dispose();
-  }
+  mesh.traverse((child) => {
+    if (child instanceof Mesh) {
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) {
+        if (Array.isArray(child.material)) {
+          child.material.forEach((m) => m.dispose());
+        } else {
+          child.material.dispose();
+        }
+      }
+    }
+  });
 };
