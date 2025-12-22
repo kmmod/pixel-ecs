@@ -1083,7 +1083,7 @@ export class World {
    * Get a resource by its token.
    *
    * @param token - Resource token to retrieve
-   * @returns The resource value, or `undefined` if not inserted
+   * @returns The resource value, will throw an error if not inserted
    *
    * @example
    * ```ts
@@ -1098,7 +1098,21 @@ export class World {
    * };
    * ```
    */
-  public getResource<T>(token: ResourceToken<T>): T | undefined {
+  public getResource<T>(token: ResourceToken<T>): T {
+    if (!this.resources.has(token)) {
+      throw new Error("Resource not found");
+    }
+    return this.resources.get(token) as T;
+  }
+
+  /**
+   * Get a optional resource by its token.
+   *
+   * @param token - Resource token to retrieve
+   * @returns The resource value, or `undefined` if not inserted
+   *
+   */
+  public tryGetResource<T>(token: ResourceToken<T>): T | undefined {
     return this.resources.get(token) as T | undefined;
   }
 

@@ -2,22 +2,19 @@ import type { World } from "@ecs/World";
 import { RendererData } from "./renderer";
 import { Mesh, Vector2 } from "three";
 import type { EventReader } from "@ecs/Event";
-import { InputEvent, type InputEventProps } from "@game/input/input";
+import {
+  PointerMoveEvent,
+  type PointerMoveEventProps,
+} from "@game/input/input";
 
-let inputEventReader: EventReader<InputEventProps> | null = null;
+let pointerMoveReader: EventReader<PointerMoveEventProps> | null = null;
 export const raycastUpdate = (world: World) => {
   const rendererData = world.getResource(RendererData);
-  if (!rendererData) {
-    return;
-  }
-
-  inputEventReader ??= world.getEventReader(InputEvent);
+  pointerMoveReader ??= world.getEventReader(PointerMoveEvent);
 
   // get only last event
-  const event = inputEventReader.read().pop();
-  if (!event) {
-    return;
-  }
+  const event = pointerMoveReader.read().pop();
+  if (!event) return;
 
   const { camera, scene, raycast, raycastResult } = rendererData;
 

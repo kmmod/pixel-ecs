@@ -1,7 +1,7 @@
 import { Time } from "@app/App";
 import { component } from "@ecs/Registry";
 import { World, Entity } from "@ecs/World";
-import { MeshComponent, Transform } from "@game/renderer/components";
+import { Transform } from "@game/renderer/components";
 import { RendererData } from "@game/renderer/renderer";
 import { hoverScale, hoverSpeed, Pixel, pixelScale } from "./pixel";
 
@@ -19,11 +19,9 @@ export const HoverAnimation = component((props: HoverAnimationProps) => ({
 
 export const hoverPuzzle = (world: World) => {
   const rendererData = world.getResource(RendererData);
-  if (!rendererData) return;
-
   const raycastId = rendererData.raycastResult[0] ?? null;
 
-  const query = world.query(Entity, MeshComponent, Pixel);
+  const query = world.query(Entity, Pixel);
   for (const [entity] of query) {
     if (raycastId === entity) {
       world.entity(entity).insert(Hovered());
@@ -34,14 +32,14 @@ export const hoverPuzzle = (world: World) => {
 };
 
 export const hoverAnimation = (world: World) => {
-  const added = world.queryAdded(Entity, Hovered, Transform);
+  const added = world.queryAdded(Entity, Pixel, Hovered);
   for (const [entity] of added) {
     world
       .entity(entity)
       .insert(HoverAnimation({ targetScale: hoverScale, speed: hoverSpeed }));
   }
 
-  const removed = world.queryRemoved(Entity, Hovered);
+  const removed = world.queryRemoved(Entity, Pixel, Hovered);
   for (const entity of removed) {
     world
       .entity(entity)
@@ -53,9 +51,8 @@ export const hoverAnimation = (world: World) => {
 
 export const hoverAnimate = (world: World) => {
   const time = world.getResource(Time);
-  if (!time) return;
 
-  const query = world.queryMut(Entity, Transform, HoverAnimation);
+  const query = world.queryMut(Entity, Transform, HoverAnimation, Pixel);
   for (const [entity, transform, hoverAnim] of query) {
     const current = transform.scale.x;
     const diff = hoverAnim.targetScale - current;

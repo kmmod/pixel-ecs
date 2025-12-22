@@ -10,7 +10,12 @@ import { Render, Startup, Update } from "@ecs/Systems";
 import type { World } from "@ecs/World";
 import { setupRenderer } from "./setup";
 import { updateRenderer } from "./update";
-import { meshAdded, meshRemoved, meshUpdated } from "./meshOperations";
+import {
+  materialUpdated,
+  meshAdded,
+  meshRemoved,
+  transformUpdated,
+} from "./meshOperations";
 import { cameraUpdate } from "./camera";
 import { raycastUpdate } from "./raycast";
 
@@ -36,7 +41,8 @@ export const RendererData = resource((params: RendererParams) => ({
 
 export const rendererBundle = (world: World) => {
   world.addSystem(Startup, setupRenderer);
-  world.addSystem(Update, [meshAdded, meshRemoved, meshUpdated]);
+  world.addSystem(Update, [meshAdded, meshRemoved]);
+  world.addSystem(Update, [transformUpdated, materialUpdated]);
   world.addSystem(Update, cameraUpdate);
   world.addSystem(Update, raycastUpdate);
   world.addSystem(Render, updateRenderer);

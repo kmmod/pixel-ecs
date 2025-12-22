@@ -51,8 +51,12 @@ describe("World.getResource", () => {
     world = new World();
   });
 
+  it("returns error for missing resource", () => {
+    expect(() => world.getResource(Time)).toThrowError();
+  });
+
   it("returns undefined for missing resource", () => {
-    expect(world.getResource(Time)).toBeUndefined();
+    expect(world.tryGetResource(Time)).toBeUndefined();
   });
 
   it("returns mutable reference", () => {
@@ -90,7 +94,7 @@ describe("World.removeResource", () => {
     const removed = world.removeResource(Time);
 
     expect(removed).toBe(true);
-    expect(world.getResource(Time)).toBeUndefined();
+    expect(world.tryGetResource(Time)).toBeUndefined();
   });
 
   it("returns false for missing resource", () => {

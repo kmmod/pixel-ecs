@@ -4,10 +4,6 @@ import { RendererData } from "./renderer";
 
 export const cameraUpdate = (world: World) => {
   const rendererData = world.getResource(RendererData);
-  if (!rendererData) {
-    return;
-  }
-
   const query = world.query(Entity, CameraAnimation);
 
   if (query.length > 1) {

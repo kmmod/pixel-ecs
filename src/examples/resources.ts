@@ -34,14 +34,12 @@ const Score = resource(() => ({
 // System using Time resource
 const timerSystem = (world: World) => {
   const time = world.getResource(Time);
-  if (!time) return;
-
   console.log(`Elapsed: ${time.elapsed.toFixed(2)}s`);
 };
 
-// System using Input resource
+// System using Input resource that can be missing
 const inputSystem = (world: World) => {
-  const input = world.getResource(Input);
+  const input = world.tryGetResource(Input);
   if (!input) return;
 
   if (input.keys.has("Space")) {
@@ -52,8 +50,6 @@ const inputSystem = (world: World) => {
 // System using Config resource
 const difficultySystem = (world: World) => {
   const config = world.getResource(Config);
-  if (!config) return;
-
   const spawnRate = 1 / config.difficulty;
   console.log(`Spawn rate: ${spawnRate}`);
 };
@@ -61,8 +57,6 @@ const difficultySystem = (world: World) => {
 // System modifying Score resource
 const scoreSystem = (world: World) => {
   const score = world.getResource(Score);
-  if (!score) return;
-
   score.current += 10;
   score.highScore = Math.max(score.highScore, score.current);
 };
@@ -86,7 +80,7 @@ export const resourceExample = () => {
   world.init();
 
   // Simulate time passing
-  const time = world.getResource(Time)!;
+  const time = world.getResource(Time);
   time.delta = 0.016;
   time.elapsed = 1.5;
 
