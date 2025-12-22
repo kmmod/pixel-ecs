@@ -26,6 +26,7 @@ export interface MaterialDataProps {
   opacity?: number;
 }
 
+// Material data is used for dynamic material updates
 export const MaterialData = component((props?: MaterialDataProps) => ({
   color: props?.color ?? "#ffffff",
   opacity: props?.opacity ?? 1,

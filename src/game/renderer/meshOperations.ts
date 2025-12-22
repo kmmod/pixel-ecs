@@ -40,6 +40,7 @@ export const transformUpdated = (world: World) => {
   }
 };
 
+// TODO: adding material now happens when creating the mesh, so this may be redundant, and might conflict with setting texture
 export const materialAdded = (world: World) => {
   const query = world.queryAdded(Entity, MeshRef, MaterialData);
 

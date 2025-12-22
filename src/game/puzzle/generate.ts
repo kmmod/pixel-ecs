@@ -12,10 +12,10 @@ import {
   MeshBasicMaterial,
   Mesh,
   CanvasTexture,
-  DoubleSide,
   LinearFilter,
   PlaneGeometry,
   BufferGeometry,
+  CircleGeometry,
 } from "three";
 import { type FileEventProps, FileEvent } from "./puzzle";
 import {
@@ -75,56 +75,81 @@ const spawnPixels = (world: World, pixels: PixelProps[]) => {
 
 const spawnCoordinates = (world: World, coordinates: CoordinateProps[]) => {
   for (const coord of coordinates) {
-    const position = new Vector3(coord.cell.x, coord.cell.y, 1.0); // Slight z offset
-    const mesh = createNumberMesh(coord.value);
+    const positionBg = new Vector3(coord.cell.x, coord.cell.y, 1.0); // Slight z offset
+    const positionValue = new Vector3(coord.cell.x, coord.cell.y, 1.1); // Slight z offset
+    const circleA = createCircleMesh(0.75, "#000000");
+    const circleB = createCircleMesh(0.7, "#ffffff");
+    const number = createNumberSprite(coord.value);
     world.spawn(
-      Transform({ position }),
-      MaterialData({ color: "#000000" }),
-      MeshRef({ mesh }),
+      Transform({ position: positionBg }),
+      MeshRef({ mesh: circleA }),
+    );
+
+    world.spawn(
+      Transform({ position: positionBg }),
+      MaterialData(),
+      MeshRef({ mesh: circleB }),
       Coordinate(coord),
+    );
+
+    world.spawn(
+      Transform({ position: positionValue }),
+      MeshRef({ mesh: number }),
     );
   }
 };
 
-const createNumberMesh = (
+const createCircleMesh = (
+  diameter: number,
+  color: string = "#ffffff",
+): Mesh<BufferGeometry, MeshBasicMaterial> => {
+  const geometry = new CircleGeometry(diameter / 2, 32);
+  const material = new MeshBasicMaterial({
+    color,
+  });
+
+  return new Mesh(geometry, material);
+};
+
+const createNumberSprite = (
   value: number,
 ): Mesh<BufferGeometry, MeshBasicMaterial> => {
   const canvas = document.createElement("canvas");
-  const size = 64;
+  const size = 128;
   canvas.width = size;
   canvas.height = size;
 
   const ctx = canvas.getContext("2d")!;
 
-  // Draw circle background
-  ctx.beginPath();
-  ctx.arc(size / 2, size / 2, size / 2 - 2, 0, Math.PI * 2);
-  ctx.fillStyle = "#ffffff";
-  ctx.fill();
-  ctx.strokeStyle = "#000000";
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
   // Draw number
-  ctx.fillStyle = "#000000";
-  ctx.font = "bold 40px Arial";
+  ctx.font = `${size / 2}px Sans-Serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(value.toString(), size / 2, size / 2 + 3);
+
+  ctx.strokeStyle = "#444444";
+  ctx.lineWidth = size / 32;
+  ctx.strokeText(value.toString(), size / 2, size / 2);
+
+  ctx.fillStyle = "#000000";
+  ctx.fillText(value.toString(), size / 2, size / 2);
 
   // Create texture from canvas
   const texture = new CanvasTexture(canvas);
   texture.minFilter = LinearFilter;
   texture.magFilter = LinearFilter;
 
-  const geometry = new PlaneGeometry(1, 1);
+  const scale = 0.75;
+  const geometry = new PlaneGeometry(scale, scale);
   const material = new MeshBasicMaterial({
+    color: "#ffffff",
     map: texture,
     transparent: true,
-    side: DoubleSide,
   });
 
-  return new Mesh(geometry, material);
+  const mesh = new Mesh(geometry, material);
+  mesh.raycast = () => {};
+
+  return mesh;
 };
 
 const generatePixels = (img: HTMLImageElement): PixelProps[] => {
@@ -147,21 +172,34 @@ const generatePixels = (img: HTMLImageElement): PixelProps[] => {
       const b = imageData.data[i + 2];
       const a = imageData.data[i + 3];
 
-      if (a === 0) continue;
+      // Skip fully transparent pixels
+      // if (a === 0) continue;
+      //
 
-      const color = rgbToHex(r, g, b);
-      const value = r < 250 || g < 250 || b < 250 ? 1 : 0;
       const xPos = x * 2 + 1;
       const yPos = y * 2 + 1;
+      const cell = { x: xPos, y: yPos };
+      if (a === 0) {
+        const pixel: PixelProps = {
+          cell,
+          color: "#ffffff",
+          value: 0,
+          marked: false,
+        };
+        pixels.push(pixel);
+      } else {
+        const color = rgbToHex(r, g, b);
+        const value = r < 250 || g < 250 || b < 250 ? 1 : 0;
 
-      const pixel: PixelProps = {
-        cell: { x: xPos, y: yPos },
-        color,
-        value,
-        marked: false,
-      };
+        const pixel: PixelProps = {
+          cell: { x: xPos, y: yPos },
+          color,
+          value,
+          marked: false,
+        };
 
-      pixels.push(pixel);
+        pixels.push(pixel);
+      }
     }
   }
 

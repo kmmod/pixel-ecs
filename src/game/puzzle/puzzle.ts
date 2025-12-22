@@ -2,7 +2,7 @@ import { type World } from "@ecs/World";
 import { event } from "@ecs/Registry";
 import { Startup, Update } from "@ecs/Systems";
 
-import sprite from "/test-sprite-01.png";
+import sprite from "/sprite-01.png";
 import { hoverAnimate, hoverAnimation, hoverPuzzle } from "./hover";
 import { generatePuzzle } from "./generate";
 import { changePuzzleColor, selectPuzzle } from "./select";
