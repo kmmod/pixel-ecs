@@ -1,25 +1,25 @@
 import type { World } from "@ecs/World";
 import { RendererData } from "./renderer";
 import { Mesh, Vector2 } from "three";
-import type { EventReader } from "@ecs/Event";
+import type { MessageReader } from "@ecs/Message";
 import {
-  PointerMoveEvent,
-  type PointerMoveEventProps,
+  PointerMoveMessage,
+  type PointerMoveMessageProps,
 } from "@game/input/input";
 
-let pointerMoveReader: EventReader<PointerMoveEventProps> | null = null;
+let pointerMoveReader: MessageReader<PointerMoveMessageProps> | null = null;
 export const raycastUpdate = (world: World) => {
   const rendererData = world.getResource(RendererData);
-  pointerMoveReader ??= world.getEventReader(PointerMoveEvent);
+  pointerMoveReader ??= world.getMessageReader(PointerMoveMessage);
 
-  // get only last event
-  const event = pointerMoveReader.read().pop();
-  if (!event) return;
+  // get only last message
+  const message = pointerMoveReader.read().pop();
+  if (!message) return;
 
   const { camera, scene, raycast, raycastResult } = rendererData;
 
-  const x = (event.mouseX / window.innerWidth) * 2 - 1;
-  const y = -(event.mouseY / window.innerHeight) * 2 + 1;
+  const x = (message.mouseX / window.innerWidth) * 2 - 1;
+  const y = -(message.mouseY / window.innerHeight) * 2 + 1;
 
   const coords = new Vector2(x, y);
 

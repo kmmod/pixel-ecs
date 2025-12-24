@@ -45,6 +45,7 @@ export const rgbToHex = (r: number, g: number, b: number): Hex => {
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 };
 
-export const pixelScale = 1.975;
-export const hoverScale = 1.7;
+export const pixelScale = 2.0;
+export const innerScale = 0.98;
+export const hoverScale = 0.9;
 export const hoverSpeed = 8.0;

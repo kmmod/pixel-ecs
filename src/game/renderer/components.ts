@@ -4,6 +4,7 @@ import {
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
+  Object3D,
 } from "three";
 
 export type InstanceId = `instance-${string}`;
@@ -26,10 +27,19 @@ export const CameraAnimation = component((params?: CameraAnimationProps) => ({
   speed: params?.speed ?? 1,
 }));
 
-export const isInstanceId = (mesh: Mesh | InstanceId): boolean => {
-  return typeof mesh === "string" && mesh.startsWith("instance-");
+export const getChildByTag = (
+  parent: Object3D,
+  type: string,
+): Object3D | undefined => {
+  let found: Object3D | undefined = undefined;
+  parent.traverse((child) => {
+    if (child.userData.type === type) {
+      found = child;
+    }
+  });
+  return found;
 };
 
-export const isMesh = (mesh: Mesh | InstanceId): boolean => {
-  return mesh instanceof Mesh;
+export const setMeshTag = (obj: Object3D, type: string) => {
+  obj.userData.type = type;
 };

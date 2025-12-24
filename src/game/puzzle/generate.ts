@@ -1,35 +1,39 @@
-import type { EventReader } from "@ecs/Event";
+import type { MessageReader } from "@ecs/Message";
 import { World } from "@ecs/World";
-import { CameraAnimation, MeshRef } from "@game/renderer/components";
 import {
-  Vector3,
-  BoxGeometry,
-  MeshBasicMaterial,
-  Mesh,
-  CanvasTexture,
-  LinearFilter,
-  PlaneGeometry,
+  CameraAnimation,
+  MeshRef,
+  setMeshTag,
+} from "@game/renderer/components";
+import {
   BufferGeometry,
+  CanvasTexture,
   CircleGeometry,
+  LinearFilter,
+  Mesh,
+  MeshBasicMaterial,
+  PlaneGeometry,
+  Vector3,
 } from "three";
-import { type FileEventProps, FileEvent } from "./puzzle";
 import {
   Coordinate,
+  innerScale,
   Pixel,
   pixelScale,
   rgbToHex,
   type CoordinateProps,
   type PixelProps,
 } from "./pixel";
+import { FileMessage, type FileMessageProps } from "./puzzle";
 
-let puzzleEventReader: EventReader<FileEventProps> | null = null;
+let puzzleMessageReader: MessageReader<FileMessageProps> | null = null;
 export const generatePuzzle = (world: World) => {
-  puzzleEventReader ??= world.getEventReader(FileEvent);
+  puzzleMessageReader ??= world.getMessageReader(FileMessage);
 
-  for (const event of puzzleEventReader.read()) {
+  for (const event of puzzleMessageReader.read()) {
     processFile(world, event.file);
 
-    // TODO: calculate size based on scene bounds using event
+    // TODO: calculate size based on scene bounds using message
     const size = 16;
     updateZoom(world, size);
   }
@@ -50,33 +54,62 @@ const processFile = (world: World, file: string) => {
   };
 };
 
+export const PixelMesh = {
+  PlaneOuter: "plane-outer",
+  PlaneInner: "plane-inner",
+} as const;
+
+export const CoordinateMesh = {
+  CircleOuter: "circle-outer",
+  CircleInner: "circle-inner",
+  Number: "number",
+} as const;
+
+export const pixelOuterColor = "#888888";
+
 const spawnPixels = (world: World, pixels: PixelProps[]) => {
   for (const pixel of pixels) {
     const color = "#ffffff";
-    const geometry = new BoxGeometry(1, 1, 1);
-    const material = new MeshBasicMaterial({ color });
-    const cube = new Mesh(geometry, material);
-    cube.position.set(pixel.cell.x, pixel.cell.y, 0);
-    cube.scale.setScalar(pixelScale);
-    world.spawn(MeshRef({ mesh: cube }), Pixel(pixel));
+    const geometry = new PlaneGeometry(1, 1);
+    const materialOuter = new MeshBasicMaterial({ color: pixelOuterColor });
+    const materialInner = new MeshBasicMaterial({ color });
+    const planeOuter = new Mesh(geometry, materialOuter);
+    const planeInner = new Mesh(geometry, materialInner);
+    planeOuter.add(planeInner);
+
+    planeOuter.position.set(pixel.cell.x, pixel.cell.y, -0.1);
+    planeOuter.scale.setScalar(pixelScale);
+
+    planeInner.position.z += 0.1;
+    planeInner.scale.setScalar(innerScale);
+    planeInner.raycast = () => {};
+
+    setMeshTag(planeOuter, PixelMesh.PlaneOuter);
+    setMeshTag(planeInner, PixelMesh.PlaneInner);
+
+    world.spawn(MeshRef({ mesh: planeOuter }), Pixel(pixel));
   }
 };
 
 const spawnCoordinates = (world: World, coordinates: CoordinateProps[]) => {
   for (const coord of coordinates) {
-    const position = new Vector3(coord.cell.x, coord.cell.y, 1.1); // Slight z offset
-    const circleA = createCircleMesh(0.75, "#000000");
-    const circleB = createCircleMesh(0.7, "#ffffff");
+    const position = new Vector3(coord.cell.x, coord.cell.y, 0.2); // Slight z offset
+    const circleOuter = createCircleMesh(0.75, "#000000");
+    const circleInner = createCircleMesh(0.7, "#ffffff");
     const number = createNumberSprite(coord.value);
 
-    circleA.position.copy(position);
-    circleA.add(circleB);
-    circleA.add(number);
+    setMeshTag(circleOuter, CoordinateMesh.CircleOuter);
+    setMeshTag(circleInner, CoordinateMesh.CircleInner);
+    setMeshTag(number, CoordinateMesh.Number);
 
-    circleB.position.z += 0.1;
+    circleOuter.add(circleInner);
+    circleOuter.add(number);
+
+    circleOuter.position.copy(position);
+    circleInner.position.z += 0.1;
     number.position.z += 0.2;
 
-    world.spawn(MeshRef({ mesh: circleA }), Coordinate(coord));
+    world.spawn(MeshRef({ mesh: circleOuter }), Coordinate(coord));
   }
 };
 

@@ -2,7 +2,7 @@ import {
   register,
   TOKEN_ID,
   type ComponentTuple,
-  type EventToken,
+  type MessageToken,
   type RegistryToken,
   type ResourceToken,
 } from "./Registry";
@@ -18,7 +18,7 @@ import {
   type SystemEntry,
   type SystemOptions,
 } from "./Systems";
-import { EventQueue, EventReader, EventWriter } from "./Event";
+import { MessageQueue, MessageReader, MessageWriter } from "./Message";
 import { OnEnter, OnExit, type StateToken, type StateValue } from "./State";
 
 export const Entity = register<number>();
@@ -112,8 +112,11 @@ export class World {
     { current: string; previous: string | null; dirty: boolean }
   >();
 
-  // Events
-  private eventQueues = new Map<EventToken<unknown>, EventQueue<unknown>>();
+  // Messages
+  private messageQueues = new Map<
+    MessageToken<unknown>,
+    MessageQueue<unknown>
+  >();
 
   // Systems
   private systems = new Map<StageToken, SystemEntry[]>();
@@ -406,7 +409,7 @@ export class World {
     this.runStage(Render);
 
     this.processDespawns();
-    this.advanceEventFrames();
+    this.advanceMessageFrames();
     this.advanceChangeTracking();
   }
 
@@ -1133,76 +1136,76 @@ export class World {
   }
 
   // ============================================================
-  // Events
+  // Messages
   // ============================================================
 
   /**
-   * Get a writer for sending events of a specific type.
-   * Events are a way for systems to communicate without tight coupling.
+   * Get a writer for writing messages of a specific type.
+   * Messages are a way for systems to communicate without tight coupling.
    *
-   * Events persist for one frame after being sent, allowing multiple
+   * Messages persist for one frame after being sent, allowing multiple
    * systems to read them.
    *
-   * @param token - Event token created with `event()`
-   * @returns An {@link EventWriter} for sending events
+   * @param token - Message token created with `message()`
+   * @returns An {@link MessageWriter} for writing message
    *
    * @example
    * ```ts
-   * // Define an event
-   * const DamageEvent = event<{ target: number; amount: number }>();
+   * // Define an message
+   * const DamageMessage = message<{ target: number; amount: number }>();
    *
-   * // Send events from a system
+   * // Writes messages from a system
    * const combatSystem = (world: World) => {
-   *   const writer = world.getEventWriter(DamageEvent);
+   *   const writer = world.getmessageWriter(DamageMessage);
    *
    *   for (const [entity, attack] of world.query(Entity, Attack)) {
-   *     writer.send({ target: attack.target, amount: attack.damage });
+   *     writer.write({ target: attack.target, amount: attack.damage });
    *   }
    * };
    * ```
    */
-  public getEventWriter<T>(token: EventToken<T>): EventWriter<T> {
-    let queue = this.eventQueues.get(token) as EventQueue<T> | undefined;
+  public getMessageWriter<T>(token: MessageToken<T>): MessageWriter<T> {
+    let queue = this.messageQueues.get(token) as MessageQueue<T> | undefined;
     if (!queue) {
-      queue = new EventQueue<T>();
-      this.eventQueues.set(token, queue);
+      queue = new MessageQueue<T>();
+      this.messageQueues.set(token, queue);
     }
-    return new EventWriter(queue);
+    return new MessageWriter(queue);
   }
 
   /**
-   * Get a reader for receiving events of a specific type.
-   * Events are available for one frame after being sent.
+   * Get a reader for receiving messages of a specific type.
+   * Messages are available for one frame after being sent.
    *
-   * @param token - Event token created with `event()`
-   * @returns An {@link EventReader} for reading events
+   * @param token - Message token created with `message()`
+   * @returns An {@link MessageReader} for reading messages
    *
    * @example
    * ```ts
-   * // Read events in another system
+   * // Read messages in another system
    * const healthSystem = (world: World) => {
-   *   const reader = world.getEventReader(DamageEvent);
+   *   const reader = world.getMessageReader(DamageMessage);
    *
-   *   for (const event of reader.read()) {
-   *     const health = world.entity(event.target).getMut(Health);
+   *   for (const message of reader.read()) {
+   *     const health = world.entity(message.target).getMut(Health);
    *     if (health) {
-   *       health.current -= event.amount;
+   *       health.current -= message.amount;
    *     }
    *   }
    * };
    * ```
    */
-  public getEventReader<T>(token: EventToken<T>): EventReader<T> {
-    let queue = this.eventQueues.get(token) as EventQueue<T> | undefined;
+  public getMessageReader<T>(token: MessageToken<T>): MessageReader<T> {
+    let queue = this.messageQueues.get(token) as MessageQueue<T> | undefined;
     if (!queue) {
-      queue = new EventQueue<T>();
-      this.eventQueues.set(token, queue);
+      queue = new MessageQueue<T>();
+      this.messageQueues.set(token, queue);
     }
-    return new EventReader(queue);
+    return new MessageReader(queue);
   }
 
-  private advanceEventFrames(): void {
-    for (const queue of this.eventQueues.values()) {
+  private advanceMessageFrames(): void {
+    for (const queue of this.messageQueues.values()) {
       queue.nextFrame();
     }
   }

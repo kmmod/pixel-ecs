@@ -10,14 +10,14 @@ export interface RegistryToken<T> {
 }
 
 export type ResourceToken<T> = RegistryToken<T>;
-export type EventToken<T> = RegistryToken<T>;
+export type MessageToken<T> = RegistryToken<T>;
 export type ComponentTuple = [RegistryToken<unknown>, unknown];
 
 export const register = <T>(): RegistryToken<T> => {
   return { [MARKER]: true, [TOKEN_ID]: tokenCounter++ } as RegistryToken<T>;
 };
 
-export function event<T extends object>(): EventToken<T> {
+export function message<T extends object>(): MessageToken<T> {
   return register<T>();
 }
 

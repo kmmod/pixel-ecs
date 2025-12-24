@@ -1,5 +1,5 @@
 import type { World } from "@ecs/World";
-import { event } from "@ecs/Registry";
+import { message } from "@ecs/Registry";
 import { Startup } from "@ecs/Systems";
 
 export const PointerButton = {
@@ -13,29 +13,29 @@ export const PointerAction = {
   Down: "down",
 } as const;
 
-export interface PointerActionEventProps {
+export interface PointerActionMessageProps {
   pointerAction: string;
   pointerButton: string;
 }
 
-export const PointerActionEvent = event<PointerActionEventProps>();
+export const PointerActionMessage = message<PointerActionMessageProps>();
 
-export interface PointerMoveEventProps {
+export interface PointerMoveMessageProps {
   mouseX: number;
   mouseY: number;
 }
-export const PointerMoveEvent = event<PointerMoveEventProps>();
+export const PointerMoveMessage = message<PointerMoveMessageProps>();
 
 const setupEventListeners = (world: World) => {
   window.addEventListener("mousemove", (e) => {
-    const writer = world.getEventWriter(PointerMoveEvent);
-    writer.send({ mouseX: e.offsetX, mouseY: e.offsetY });
+    const writer = world.getMessageWriter(PointerMoveMessage);
+    writer.write({ mouseX: e.offsetX, mouseY: e.offsetY });
   });
 
   window.addEventListener("mousedown", (e) => {
-    const writer = world.getEventWriter(PointerActionEvent);
+    const writer = world.getMessageWriter(PointerActionMessage);
     const button = getButton(e);
-    writer.send({ pointerAction: PointerAction.Down, pointerButton: button });
+    writer.write({ pointerAction: PointerAction.Down, pointerButton: button });
   });
 };
 

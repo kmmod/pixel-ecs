@@ -1,9 +1,11 @@
 import { Time } from "@app/App";
 import { component } from "@ecs/Registry";
-import { World, Entity } from "@ecs/World";
-import { MeshRef } from "@game/renderer/components";
+import { Entity, World } from "@ecs/World";
+import { getChildByTag, MeshRef } from "@game/renderer/components";
 import { RendererData } from "@game/renderer/renderer";
-import { hoverScale, hoverSpeed, Pixel, pixelScale } from "./pixel";
+import { Mesh } from "three";
+import { PixelMesh } from "./generate";
+import { hoverScale, hoverSpeed, innerScale, Pixel } from "./pixel";
 
 export const Hovered = component(() => ({}));
 
@@ -44,7 +46,7 @@ export const hoverAnimation = (world: World) => {
     world
       .entity(entity)
       .insert(
-        HoverAnimation({ targetScale: pixelScale, speed: hoverSpeed * 0.5 }),
+        HoverAnimation({ targetScale: innerScale, speed: hoverSpeed * 0.5 }),
       );
   }
 };
@@ -54,15 +56,16 @@ export const hoverAnimate = (world: World) => {
 
   const query = world.queryMut(Entity, MeshRef, HoverAnimation, Pixel);
   for (const [entity, meshRef, hoverAnim] of query) {
-    const current = meshRef.mesh.scale.x;
-    const diff = hoverAnim.targetScale - current;
-    if (Math.abs(diff) > 0.01) {
-      meshRef.mesh.scale.setScalar(
-        current + diff * hoverAnim.seed * time.delta,
-      );
-    } else {
-      meshRef.mesh.scale.setScalar(hoverAnim.targetScale);
-      world.entity(entity).remove(HoverAnimation);
+    const child = getChildByTag(meshRef.mesh, PixelMesh.PlaneInner);
+    if (child && child instanceof Mesh) {
+      const current = child.scale.x;
+      const diff = hoverAnim.targetScale - current;
+      if (Math.abs(diff) > 0.01) {
+        child.scale.setScalar(current + diff * hoverAnim.seed * time.delta);
+      } else {
+        child.scale.setScalar(hoverAnim.targetScale);
+        world.entity(entity).remove(HoverAnimation);
+      }
     }
   }
 };

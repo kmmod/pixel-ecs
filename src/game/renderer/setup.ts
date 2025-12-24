@@ -1,14 +1,12 @@
+import { World } from "@ecs/World";
 import {
-  AmbientLight,
   Color,
-  DirectionalLight,
   OrthographicCamera,
   Raycaster,
   Scene,
   WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
-import { World } from "@ecs/World";
 import { RendererData } from "./renderer";
 
 const frustumSize = 2;
@@ -61,12 +59,12 @@ const createScene = (): Scene => {
   const scene = new Scene();
   scene.background = new Color("#41494f");
 
-  const ambientLight = new AmbientLight(0xffffff, 0.1);
-  scene.add(ambientLight);
+  // const ambientLight = new AmbientLight(0xffffff, 0.1);
+  // scene.add(ambientLight);
 
-  const directionalLight = new DirectionalLight(0xffffff, 1);
-  directionalLight.position.set(1, 5, 2);
-  scene.add(directionalLight);
+  // const directionalLight = new DirectionalLight(0xffffff, 1);
+  // directionalLight.position.set(1, 5, 2);
+  // scene.add(directionalLight);
 
   return scene;
 };
@@ -78,10 +76,10 @@ const createCamera = (): OrthographicCamera => {
     (frustumSize * aspect) / 2,
     frustumSize / 2,
     -frustumSize / 2,
-    0.01,
-    1000,
+    0.1,
+    50,
   );
-  camera.position.set(0, 0, 5);
+  camera.position.set(0, 0, 20);
   return camera;
 };
 
@@ -97,7 +95,7 @@ const createControls = (
   renderer: WebGLRenderer,
 ): OrbitControls => {
   const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableRotate = false;
+  controls.enableRotate = true;
   controls.zoomToCursor = true;
   return controls;
 };
