@@ -32,7 +32,9 @@ const processFile = (world: World, file: string) => {
   const image = new Image();
   image.src = file;
   image.onload = () => {
-    const pixels = generatePixels(image);
+    // TODO: Take this from global config
+    const skipTransparent = true;
+    const pixels = generatePixels(image, skipTransparent);
     const coordinates = generateCoordinates(pixels, image.width, image.height);
     spawnPixels(world, pixels);
     spawnCoordinates(world, coordinates);

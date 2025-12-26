@@ -135,10 +135,19 @@ export const generateCoordinates = (
         { dx: 1, dy: -1 }, // bottom-right
       ];
 
+      let coordinateCount = 0;
       let value = 0;
       for (const { dx, dy } of adjacentOffsets) {
         const pixelKey = `${x + dx},${y + dy}`;
-        value += pixelMap.get(pixelKey) ?? 0;
+        if (pixelMap.has(pixelKey)) {
+          coordinateCount++;
+          value += pixelMap.get(pixelKey) ?? 0;
+        }
+      }
+
+      if (coordinateCount === 0) {
+        // No adjacent pixels, skip this coordinate
+        continue;
       }
 
       const coord: CoordinateProps = {

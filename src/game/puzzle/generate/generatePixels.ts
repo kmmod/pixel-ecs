@@ -41,7 +41,10 @@ export const spawnPixels = (world: World, pixels: PixelProps[]) => {
   }
 };
 
-export const generatePixels = (img: HTMLImageElement): PixelProps[] => {
+export const generatePixels = (
+  img: HTMLImageElement,
+  skipTransparent: boolean,
+): PixelProps[] => {
   const canvas = document.createElement("canvas");
   canvas.width = img.width;
   canvas.height = img.height;
@@ -65,8 +68,7 @@ export const generatePixels = (img: HTMLImageElement): PixelProps[] => {
       const a = imageData.data[i + 3];
 
       // Skip fully transparent pixels
-      // if (a === 0) continue;
-      //
+      if (skipTransparent && a === 0) continue;
 
       const xPos = x * 2 + 1;
       const yPos = y * 2 + 1;
