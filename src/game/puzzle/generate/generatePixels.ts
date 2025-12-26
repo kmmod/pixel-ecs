@@ -18,6 +18,7 @@ export const pixelOuterColor = "#888888";
 
 export const spawnPixels = (world: World, pixels: PixelProps[]) => {
   for (const pixel of pixels) {
+    // const color = !pixel.value ? "#ffffff" : "#000000";
     const color = "#ffffff";
     const geometry = new PlaneGeometry(1, 1);
     const materialOuter = new MeshBasicMaterial({ color: pixelOuterColor });
@@ -46,6 +47,9 @@ export const generatePixels = (img: HTMLImageElement): PixelProps[] => {
   canvas.height = img.height;
 
   const ctx = canvas.getContext("2d")!;
+
+  ctx.scale(1, -1);
+  ctx.translate(0, -img.height);
   ctx.drawImage(img, 0, 0);
 
   const imageData = ctx.getImageData(0, 0, img.width, img.height);

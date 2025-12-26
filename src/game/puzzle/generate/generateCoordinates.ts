@@ -16,6 +16,10 @@ import {
 } from "three";
 import { MeshRef, setMeshTag } from "@game/renderer/components.ts";
 
+export const defaultCoordinateColor = "#ffffff";
+export const solvedCoordinateColor = "#818181";
+export const errorCoordinateColor = "#ff8888";
+
 export const CoordinateMesh = {
   CircleOuter: "circle-outer",
   CircleInner: "circle-inner",
@@ -29,7 +33,7 @@ export const spawnCoordinates = (
   for (const coord of coordinates) {
     const position = new Vector3(coord.cell.x, coord.cell.y, 0.2); // Slight z offset
     const circleOuter = createCircleMesh(0.75, "#000000");
-    const circleInner = createCircleMesh(0.7, "#ffffff");
+    const circleInner = createCircleMesh(0.7, defaultCoordinateColor);
     const number = createNumberSprite(coord.value);
 
     setMeshTag(circleOuter, CoordinateMesh.CircleOuter);
