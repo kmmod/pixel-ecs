@@ -11,7 +11,7 @@ import type { World } from "@ecs/World";
 import { setupRenderer } from "./setup";
 import { updateRenderer } from "./update";
 import { meshAdded, meshRemoved } from "./meshOperations";
-import { cameraUpdate } from "./camera";
+import { cameraTransitionInit, cameraUpdate } from "./camera";
 import { raycastUpdate } from "./raycast";
 
 export interface RendererParams {
@@ -37,7 +37,7 @@ export const RendererData = resource((params: RendererParams) => ({
 export const rendererBundle = (world: World) => {
   world.addSystem(Startup, setupRenderer);
   world.addSystem(Update, [meshAdded, meshRemoved]);
-  world.addSystem(Update, cameraUpdate);
+  world.addSystem(Update, [cameraTransitionInit, cameraUpdate]);
   world.addSystem(Update, raycastUpdate);
   world.addSystem(Render, updateRenderer);
 };

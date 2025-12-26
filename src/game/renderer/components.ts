@@ -5,6 +5,7 @@ import {
   MeshBasicMaterial,
   MeshStandardMaterial,
   Object3D,
+  Vector2,
 } from "three";
 
 export type InstanceId = `instance-${string}`;
@@ -19,11 +20,13 @@ export const MeshRef = component((props: MeshRefProps) => ({
 
 export interface CameraAnimationProps {
   targetZoom?: number;
+  targetPosition?: Vector2;
   speed?: number;
 }
 
 export const CameraAnimation = component((params?: CameraAnimationProps) => ({
   targetZoom: params?.targetZoom ?? 1,
+  targetPosition: params?.targetPosition ?? new Vector2(0, 0),
   speed: params?.speed ?? 1,
 }));
 

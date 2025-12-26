@@ -9,8 +9,8 @@ import {
 import { getChildByTag, MeshRef } from "@game/renderer/components";
 import { RendererData } from "@game/renderer/renderer";
 import { Pixel } from "./pixel";
-import { PixelMesh } from "./generate";
 import { Mesh } from "three";
+import {PixelMesh} from "@game/puzzle/generate/generatePixels.ts";
 
 export interface PixelSelectMessageProps {
   entityId: number;

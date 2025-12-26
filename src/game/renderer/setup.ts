@@ -9,7 +9,7 @@ import {
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { RendererData } from "./renderer";
 
-const frustumSize = 2;
+export const frustumSize = 2;
 
 export const setupRenderer = (world: World) => {
   const container = document.getElementById("app");

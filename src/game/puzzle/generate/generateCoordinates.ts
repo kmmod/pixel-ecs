@@ -1,10 +1,9 @@
-import type { MessageReader } from "@ecs/Message";
-import { World } from "@ecs/World";
+import { World } from "@ecs/World.ts";
 import {
-  CameraAnimation,
-  MeshRef,
-  setMeshTag,
-} from "@game/renderer/components";
+  Coordinate,
+  type CoordinateProps,
+  type PixelProps,
+} from "@game/puzzle/pixel.ts";
 import {
   BufferGeometry,
   CanvasTexture,
@@ -15,83 +14,17 @@ import {
   PlaneGeometry,
   Vector3,
 } from "three";
-import {
-  Coordinate,
-  innerScale,
-  Pixel,
-  pixelScale,
-  rgbToHex,
-  type CoordinateProps,
-  type PixelProps,
-} from "./pixel";
-import { FileMessage, type FileMessageProps } from "./puzzle";
-
-let puzzleMessageReader: MessageReader<FileMessageProps> | null = null;
-export const generatePuzzle = (world: World) => {
-  puzzleMessageReader ??= world.getMessageReader(FileMessage);
-
-  for (const event of puzzleMessageReader.read()) {
-    processFile(world, event.file);
-
-    // TODO: calculate size based on scene bounds using message
-    const size = 16;
-    updateZoom(world, size);
-  }
-};
-
-const updateZoom = (world: World, size: number) => {
-  world.spawn(CameraAnimation({ targetZoom: 1.0 / size, speed: 0.25 }));
-};
-
-const processFile = (world: World, file: string) => {
-  const img = new Image();
-  img.src = file;
-  img.onload = () => {
-    const pixels = generatePixels(img);
-    const coordinates = generateCoordinates(pixels, img.width, img.height);
-    spawnPixels(world, pixels);
-    spawnCoordinates(world, coordinates);
-  };
-};
-
-export const PixelMesh = {
-  PlaneOuter: "plane-outer",
-  PlaneInner: "plane-inner",
-} as const;
+import { MeshRef, setMeshTag } from "@game/renderer/components.ts";
 
 export const CoordinateMesh = {
   CircleOuter: "circle-outer",
   CircleInner: "circle-inner",
   Number: "number",
 } as const;
-
-export const pixelOuterColor = "#888888";
-
-const spawnPixels = (world: World, pixels: PixelProps[]) => {
-  for (const pixel of pixels) {
-    const color = "#ffffff";
-    const geometry = new PlaneGeometry(1, 1);
-    const materialOuter = new MeshBasicMaterial({ color: pixelOuterColor });
-    const materialInner = new MeshBasicMaterial({ color });
-    const planeOuter = new Mesh(geometry, materialOuter);
-    const planeInner = new Mesh(geometry, materialInner);
-    planeOuter.add(planeInner);
-
-    planeOuter.position.set(pixel.cell.x, pixel.cell.y, -0.1);
-    planeOuter.scale.setScalar(pixelScale);
-
-    planeInner.position.z += 0.1;
-    planeInner.scale.setScalar(innerScale);
-    planeInner.raycast = () => {};
-
-    setMeshTag(planeOuter, PixelMesh.PlaneOuter);
-    setMeshTag(planeInner, PixelMesh.PlaneInner);
-
-    world.spawn(MeshRef({ mesh: planeOuter }), Pixel(pixel));
-  }
-};
-
-const spawnCoordinates = (world: World, coordinates: CoordinateProps[]) => {
+export const spawnCoordinates = (
+  world: World,
+  coordinates: CoordinateProps[],
+) => {
   for (const coord of coordinates) {
     const position = new Vector3(coord.cell.x, coord.cell.y, 0.2); // Slight z offset
     const circleOuter = createCircleMesh(0.75, "#000000");
@@ -166,61 +99,7 @@ const createNumberSprite = (
   return mesh;
 };
 
-const generatePixels = (img: HTMLImageElement): PixelProps[] => {
-  const canvas = document.createElement("canvas");
-  canvas.width = img.width;
-  canvas.height = img.height;
-
-  const ctx = canvas.getContext("2d")!;
-  ctx.drawImage(img, 0, 0);
-
-  const imageData = ctx.getImageData(0, 0, img.width, img.height);
-
-  const pixels: PixelProps[] = [];
-
-  for (let x = 0; x < img.width; x++) {
-    for (let y = 0; y < img.height; y++) {
-      const i = (y * img.width + x) * 4;
-      const r = imageData.data[i];
-      const g = imageData.data[i + 1];
-      const b = imageData.data[i + 2];
-      const a = imageData.data[i + 3];
-
-      // Skip fully transparent pixels
-      // if (a === 0) continue;
-      //
-
-      const xPos = x * 2 + 1;
-      const yPos = y * 2 + 1;
-      const cell = { x: xPos, y: yPos };
-      if (a === 0) {
-        const pixel: PixelProps = {
-          cell,
-          color: "#ffffff",
-          value: 0,
-          marked: false,
-        };
-        pixels.push(pixel);
-      } else {
-        const color = rgbToHex(r, g, b);
-        const value = r < 250 || g < 250 || b < 250 ? 1 : 0;
-
-        const pixel: PixelProps = {
-          cell: { x: xPos, y: yPos },
-          color,
-          value,
-          marked: false,
-        };
-
-        pixels.push(pixel);
-      }
-    }
-  }
-
-  return pixels;
-};
-
-const generateCoordinates = (
+export const generateCoordinates = (
   pixels: PixelProps[],
   imgWidth: number,
   imgHeight: number,

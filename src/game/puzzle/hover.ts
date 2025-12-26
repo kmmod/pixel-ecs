@@ -4,8 +4,8 @@ import { Entity, World } from "@ecs/World";
 import { getChildByTag, MeshRef } from "@game/renderer/components";
 import { RendererData } from "@game/renderer/renderer";
 import { Mesh } from "three";
-import { PixelMesh } from "./generate";
 import { hoverScale, hoverSpeed, innerScale, Pixel } from "./pixel";
+import {PixelMesh} from "@game/puzzle/generate/generatePixels.ts";
 
 export const Hovered = component(() => ({}));
 

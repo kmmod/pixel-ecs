@@ -4,7 +4,7 @@ import { Startup, Update } from "@ecs/Systems";
 
 import sprite from "/sprite-01.png";
 import { hoverAnimate, hoverAnimation, hoverPuzzle } from "./hover";
-import { generatePuzzle } from "./generate";
+import { generatePuzzle } from "./generate/generate.ts";
 import { handlePixelSelect, selectPuzzle } from "./select";
 
 export interface FileMessageProps {
