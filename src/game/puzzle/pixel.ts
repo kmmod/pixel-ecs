@@ -49,3 +49,10 @@ export const pixelScale = 2.0;
 export const innerScale = 0.98;
 export const hoverScale = 0.9;
 export const hoverSpeed = 8.0;
+
+export const diagonalOffsets = [
+  { x: -1, y: 1 },
+  { x: 1, y: 1 },
+  { x: 1, y: -1 },
+  { x: -1, y: -1 },
+];

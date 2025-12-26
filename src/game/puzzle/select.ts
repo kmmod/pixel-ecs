@@ -6,9 +6,20 @@ import {
   PointerButton,
   type PointerActionMessageProps,
 } from "@game/input/input";
-import { getChildByTag, MeshRef } from "@game/renderer/components";
+import {
+  getChildByTag,
+  MeshRef,
+  type MeshRefProps,
+} from "@game/renderer/components";
 import { RendererData } from "@game/renderer/renderer";
-import { Coordinate, Pixel } from "./pixel";
+import {
+  type Cell,
+  Coordinate,
+  type CoordinateProps,
+  diagonalOffsets,
+  Pixel,
+  type PixelProps,
+} from "./pixel";
 import { Mesh } from "three";
 import { PixelMesh } from "@game/puzzle/generate/generatePixels.ts";
 import {
@@ -46,6 +57,80 @@ export const selectPuzzle = (world: World) => {
 const white = "#ffffff";
 const black = "#000000";
 
+const isNeighbour = (cell: Cell, targetCell: Cell): boolean => {
+  return diagonalOffsets.some(
+    (offset) =>
+      cell.x === targetCell.x + offset.x && cell.y === targetCell.y + offset.y,
+  );
+};
+
+const updatePixelMeshColor = (meshRef: MeshRefProps, marked: boolean): void => {
+  if (!meshRef) return;
+
+  const child = getChildByTag(meshRef.mesh, PixelMesh.PlaneInner);
+  if (child && child instanceof Mesh && child.material !== undefined) {
+    child.material.color.set(marked ? black : white);
+    child.material.needsUpdate = true;
+  }
+};
+
+const getNeighbouringCoordinates = (
+  pixelCell: Cell,
+  coordinates: [number, CoordinateProps][],
+) => {
+  return coordinates.filter(([_, coord]) => isNeighbour(coord.cell, pixelCell));
+};
+
+const countMarkedNeighbouringPixels = (
+  coordinateCell: Cell,
+  pixels: [number, PixelProps][],
+): number => {
+  return pixels
+    .filter(([_, p]) => isNeighbour(p.cell, coordinateCell))
+    .reduce((sum, [_, p]) => sum + (p.marked ? 1 : 0), 0);
+};
+
+const getCoordinateColor = (
+  markedCount: number,
+  expectedValue: number,
+): string => {
+  if (markedCount === 0) return defaultCoordinateColor;
+  if (markedCount === expectedValue) return solvedCoordinateColor;
+  return errorCoordinateColor;
+};
+
+const updateCoordinateMeshColor = (
+  meshRef: MeshRefProps,
+  color: string,
+): void => {
+  if (!meshRef) return;
+
+  const circleInner = getChildByTag(meshRef.mesh, CoordinateMesh.CircleInner);
+  if (circleInner && circleInner instanceof Mesh && circleInner.material) {
+    circleInner.material.color.set(color);
+  }
+};
+
+const updateNeighbouringCoordinates = (
+  pixel: PixelProps,
+  pixels: [number, PixelProps][],
+  coordinates: [number, CoordinateProps][],
+  world: World,
+): void => {
+  const neighbouringCoords = getNeighbouringCoordinates(
+    pixel.cell,
+    coordinates,
+  );
+
+  neighbouringCoords.forEach(([entity, coord]) => {
+    const coordMeshRef = world.entity(entity).get(MeshRef);
+    if (!coordMeshRef) return;
+    const markedCount = countMarkedNeighbouringPixels(coord.cell, pixels);
+    const color = getCoordinateColor(markedCount, coord.value);
+    updateCoordinateMeshColor(coordMeshRef, color);
+  });
+};
+
 let pixelSelectReader: MessageReader<PixelSelectMessageProps> | null = null;
 export const handlePixelSelect = (world: World) => {
   pixelSelectReader ??= world.getMessageReader(PixelSelectMessage);
@@ -58,69 +143,12 @@ export const handlePixelSelect = (world: World) => {
 
   for (const message of messages) {
     const pixel = world.entity(message.entityId).get(Pixel);
-    const meshRef = world.entity(message.entityId).get(MeshRef);
-
     if (!pixel) continue;
 
-    // Update pixel color
-    if (meshRef) {
-      const child = getChildByTag(meshRef.mesh, PixelMesh.PlaneInner);
-      if (child && child instanceof Mesh && child.material !== undefined) {
-        child.material.color.set(pixel?.marked ? black : white);
-        child.material.needsUpdate = true;
-      }
-    }
+    const meshRef = world.entity(message.entityId).get(MeshRef);
+    if (!meshRef) continue;
 
-    // Find neighboring coordinates and see if any needs to marked as error
-    const pixelCell = pixel.cell;
-    const neighbourOffsets = [
-      { x: -1, y: 1 },
-      { x: 1, y: 1 },
-      { x: 1, y: -1 },
-      { x: -1, y: -1 },
-    ];
-
-    const coords = coordinates.filter(([_, coord]) => {
-      return neighbourOffsets.some(
-        (offset) =>
-          coord.cell.x === pixelCell.x + offset.x &&
-          coord.cell.y === pixelCell.y + offset.y,
-      );
-    });
-
-    // For each neighboring coordinate, count marked pixels and compare to expected value
-    // Very ugly but works
-    // Looking up from world each time is not optimal but avoids maintaining extra state
-    // We could have a map of entityId to Pixel/Coordinate and keep it on resource for faster access
-    coords.forEach(([entity, coord]) => {
-      const coordMeshRef = world.entity(entity).get(MeshRef);
-      if (!coordMeshRef) return;
-      const pixelsValue = pixels
-        .filter(([_, p]) => {
-          return neighbourOffsets.some(
-            (offset) =>
-              p.cell.x === coord.cell.x + offset.x &&
-              p.cell.y === coord.cell.y + offset.y,
-          );
-        })
-        .reduce((sum, [_, p]) => sum + (p.marked ? 1 : 0), 0);
-
-      const expectedValue = coord.value;
-
-      // Update coordinate color based on whether the pixel count matches the expected value
-      const circleInner = getChildByTag(
-        coordMeshRef.mesh,
-        CoordinateMesh.CircleInner,
-      );
-      if (circleInner && circleInner instanceof Mesh && circleInner.material) {
-        if (pixelsValue === 0) {
-          circleInner.material.color.set(defaultCoordinateColor);
-        } else if (pixelsValue === expectedValue) {
-          circleInner.material.color.set(solvedCoordinateColor);
-        } else {
-          circleInner.material.color.set(errorCoordinateColor);
-        }
-      }
-    });
+    updatePixelMeshColor(meshRef, pixel.marked);
+    updateNeighbouringCoordinates(pixel, pixels, coordinates, world);
   }
 };
