@@ -95,7 +95,7 @@ const createControls = (
   renderer: WebGLRenderer,
 ): OrbitControls => {
   const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableRotate = true;
+  controls.enableRotate = false;
   controls.zoomToCursor = true;
   return controls;
 };

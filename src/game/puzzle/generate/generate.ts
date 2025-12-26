@@ -13,7 +13,11 @@ import {
 
 export const PixelsGenerated = message<{}>();
 
-export const CameraTransitionFlag = component(() => ({}));
+export interface PixelsParentProps {
+  image: HTMLImageElement;
+}
+
+export const PixelsParent = component((props: PixelsParentProps) => props);
 
 let puzzleMessageReader: MessageReader<FileMessageProps> | null = null;
 export const generatePuzzle = (world: World) => {
@@ -21,18 +25,17 @@ export const generatePuzzle = (world: World) => {
 
   for (const event of puzzleMessageReader.read()) {
     processFile(world, event.file);
-    console.log("generatePuzzle executed");
   }
 };
 
 const processFile = (world: World, file: string) => {
-  const img = new Image();
-  img.src = file;
-  img.onload = () => {
-    const pixels = generatePixels(img);
-    const coordinates = generateCoordinates(pixels, img.width, img.height);
+  const image = new Image();
+  image.src = file;
+  image.onload = () => {
+    const pixels = generatePixels(image);
+    const coordinates = generateCoordinates(pixels, image.width, image.height);
     spawnPixels(world, pixels);
     spawnCoordinates(world, coordinates);
-    world.spawn(CameraTransitionFlag());
+    world.spawn(PixelsParent({ image }));
   };
 };

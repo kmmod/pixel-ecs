@@ -21,6 +21,7 @@ export const CoordinateMesh = {
   CircleInner: "circle-inner",
   Number: "number",
 } as const;
+
 export const spawnCoordinates = (
   world: World,
   coordinates: CoordinateProps[],

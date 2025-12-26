@@ -1,32 +1,44 @@
 import { Entity, type World } from "@ecs/World";
-import { CameraAnimation } from "./components";
+import { CameraAnimation, MeshRef } from "./components";
 import { RendererData } from "./renderer";
-import { CameraTransitionFlag } from "@game/puzzle/generate/generate.ts";
 import { Box3, Vector2, Vector3 } from "three";
 import { frustumSize } from "@game/renderer/setup.ts";
 import { Time } from "@app/App.ts";
+import { Pixel } from "@game/puzzle/pixel.ts";
 
 export const cameraTransitionInit = (world: World) => {
-  const query = world.queryAdded(Entity, CameraTransitionFlag);
+  const query = world.queryAdded(Entity, MeshRef, Pixel);
   if (query.length === 0) return;
 
-  for (const [entity] of query) {
-    world.entity(entity).despawn();
-  }
-
-  const { scene } = world.getResource(RendererData);
-
-  const box = new Box3().setFromObject(scene);
+  const box = new Box3();
   const size = new Vector3();
   const center = new Vector3();
+
+  for (const [_, meshRef] of query) {
+    box.expandByObject(meshRef.mesh);
+  }
 
   box.getSize(size);
   box.getCenter(center);
 
-  const maxDim = Math.max(size.x, size.y);
+  const paddingPx = 20;
+
+  // Calculate the ratio of usable viewport (excluding padding)
+  const viewportScale = Math.min(
+    (window.innerWidth - paddingPx * 2) / window.innerWidth,
+    (window.innerHeight - paddingPx * 2) / window.innerHeight,
+  );
+
   const aspect = window.innerWidth / window.innerHeight;
-  const zoom =
+  const maxDim = Math.max(size.x, size.y);
+
+  // Base zoom calculation
+  let zoom =
     aspect > 1 ? frustumSize / maxDim : frustumSize / (maxDim / aspect);
+
+  // Reduce zoom to account for padding
+  zoom *= viewportScale;
+
   const targetPosition = new Vector2(center.x, center.y);
 
   world.spawn(
@@ -77,8 +89,7 @@ export const cameraUpdate = (world: World) => {
         controls.target.y += positionDiff.y * cameraAnim.speed * time.delta;
       }
 
-      controls.enableZoom = false;
-      controls.enablePan = false;
+      controls.enabled = false;
     } else {
       // Snap to final values
       camera.zoom = cameraAnim.targetZoom;
@@ -86,10 +97,8 @@ export const cameraUpdate = (world: World) => {
       camera.position.y = cameraAnim.targetPosition.y;
       controls.target.x = cameraAnim.targetPosition.x;
       controls.target.y = cameraAnim.targetPosition.y;
-      camera.updateProjectionMatrix();
 
-      controls.enableZoom = true;
-      controls.enablePan = true;
+      controls.enabled = true;
       world.entity(entity).despawn();
     }
   }
