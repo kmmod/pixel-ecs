@@ -57,6 +57,9 @@ export const selectPuzzle = (world: World) => {
 const white = "#ffffff";
 const black = "#000000";
 
+type QueryPixel = [number, PixelProps];
+type QueryCoordinate = [number, CoordinateProps];
+
 const isNeighbour = (cell: Cell, targetCell: Cell): boolean => {
   return diagonalOffsets.some(
     (offset) =>
@@ -76,14 +79,14 @@ const updatePixelMeshColor = (meshRef: MeshRefProps, marked: boolean): void => {
 
 const getNeighbouringCoordinates = (
   pixelCell: Cell,
-  coordinates: [number, CoordinateProps][],
+  coordinates: QueryCoordinate[],
 ) => {
   return coordinates.filter(([_, coord]) => isNeighbour(coord.cell, pixelCell));
 };
 
 const countMarkedNeighbouringPixels = (
   coordinateCell: Cell,
-  pixels: [number, PixelProps][],
+  pixels: QueryPixel[],
 ): number => {
   return pixels
     .filter(([_, p]) => isNeighbour(p.cell, coordinateCell))
@@ -113,8 +116,8 @@ const updateCoordinateMeshColor = (
 
 const updateNeighbouringCoordinates = (
   pixel: PixelProps,
-  pixels: [number, PixelProps][],
-  coordinates: [number, CoordinateProps][],
+  pixels: QueryPixel[],
+  coordinates: QueryCoordinate[],
   world: World,
 ): void => {
   const neighbouringCoords = getNeighbouringCoordinates(
