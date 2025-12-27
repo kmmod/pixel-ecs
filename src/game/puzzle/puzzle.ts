@@ -6,6 +6,10 @@ import sprite from "/sprite-01.png";
 import { hoverAnimate, hoverAnimation, hoverPuzzle } from "./hover";
 import { generatePuzzle } from "./generate/generate.ts";
 import { handlePixelSelect, selectPuzzle } from "./select";
+import {
+  coordinateVisibility,
+  initVisibility,
+} from "@game/puzzle/visibility.ts";
 
 export interface FileMessageProps {
   file: string;
@@ -18,8 +22,9 @@ const initPuzzle = (world: World) => {
 };
 
 export const puzzleBundle = (world: World) => {
-  world.addSystem(Startup, initPuzzle);
+  world.addSystem(Startup, [initPuzzle, initVisibility]);
   world.addSystem(Update, generatePuzzle);
   world.addSystem(Update, [hoverPuzzle, hoverAnimate, hoverAnimation]);
   world.addSystem(Update, [selectPuzzle, handlePixelSelect]);
+  world.addSystem(Update, coordinateVisibility);
 };
