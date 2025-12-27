@@ -2,9 +2,10 @@ import type { MessageReader } from "@ecs/Message";
 import { Entity, type World } from "@ecs/World";
 import { message } from "@ecs/Registry";
 import {
+  PointerAction,
   PointerActionMessage,
-  PointerButton,
   type PointerActionMessageProps,
+  PointerButton,
 } from "@game/input/input";
 import {
   getChildByTag,
@@ -35,22 +36,29 @@ export interface PixelSelectMessageProps {
 
 export const PixelSelectMessage = message<PixelSelectMessageProps>();
 
-let pointerDownReader: MessageReader<PointerActionMessageProps> | null = null;
+let pointerActionReader: MessageReader<PointerActionMessageProps> | null = null;
+let lastPixels: number[] = [];
 export const selectPuzzle = (world: World) => {
   const rendererData = world.getResource(RendererData);
   const raycastId = rendererData.raycastResult[0] ?? null;
 
-  pointerDownReader ??= world.getMessageReader(PointerActionMessage);
-  const message = pointerDownReader.read().pop();
+  pointerActionReader ??= world.getMessageReader(PointerActionMessage);
+  const message = pointerActionReader.read().pop();
 
-  if (!message || message.pointerButton !== PointerButton.Left || !raycastId)
+  if (!message || message.pointerButton !== PointerButton.Left || !raycastId) {
     return;
+  }
 
   const pixel = world.entity(raycastId).getMut(Pixel);
 
-  if (pixel) {
+  if (pixel && lastPixels.indexOf(raycastId) === -1) {
     pixel.marked = !pixel.marked;
+    lastPixels.push(raycastId);
     world.getMessageWriter(PixelSelectMessage).write({ entityId: raycastId });
+  }
+
+  if (message.pointerAction === PointerAction.Up) {
+    lastPixels = [];
   }
 };
 

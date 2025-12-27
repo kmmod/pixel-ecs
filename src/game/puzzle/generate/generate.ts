@@ -32,7 +32,7 @@ const processFile = (world: World, file: string) => {
   const image = new Image();
   image.src = file;
   image.onload = () => {
-    // TODO: Take this from global config
+    // TODO: Take skipTransparent from global config
     const skipTransparent = true;
     const pixels = generatePixels(image, skipTransparent);
     const coordinates = generateCoordinates(pixels, image.width, image.height);

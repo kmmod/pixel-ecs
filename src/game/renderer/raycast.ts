@@ -3,17 +3,17 @@ import { RendererData } from "./renderer";
 import { Mesh, Vector2 } from "three";
 import type { MessageReader } from "@ecs/Message";
 import {
-  PointerMoveMessage,
-  type PointerMoveMessageProps,
-} from "@game/input/input";
+  PointerActionMessage,
+  type PointerActionMessageProps,
+} from "@game/input/input.ts";
 
-let pointerMoveReader: MessageReader<PointerMoveMessageProps> | null = null;
+let pointerActionReader: MessageReader<PointerActionMessageProps> | null = null;
 export const raycastUpdate = (world: World) => {
   const rendererData = world.getResource(RendererData);
-  pointerMoveReader ??= world.getMessageReader(PointerMoveMessage);
+  pointerActionReader ??= world.getMessageReader(PointerActionMessage);
 
   // get only last message
-  const message = pointerMoveReader.read().pop();
+  const message = pointerActionReader.read().pop();
   if (!message) return;
 
   const { camera, scene, raycast, raycastResult } = rendererData;
