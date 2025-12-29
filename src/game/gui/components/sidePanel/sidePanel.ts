@@ -2,6 +2,7 @@ import styles from "./sidePanel.module.css";
 import type { World } from "@ecs/World.ts";
 import { RegenerateMessage } from "@game/puzzle/generate/generate.ts";
 import { FileMessage } from "@game/puzzle/puzzle.ts";
+import { Config } from "@game/globals/config.ts";
 
 let open = true;
 export const createSidePanel = (world: World): HTMLDivElement => {
@@ -13,6 +14,7 @@ export const createSidePanel = (world: World): HTMLDivElement => {
   createButton(panel, "Regenerate Puzzle", () => {
     world.getMessageWriter(RegenerateMessage).write({});
   });
+  createCheckbox(panel, "Skip transparent", world);
   document.body.appendChild(panel);
   return panel;
 };
@@ -115,4 +117,42 @@ const handleFile = (world: World, file: File) => {
     console.error("Failed to write FileMessage:", err);
     URL.revokeObjectURL(url);
   }
+};
+
+const createCheckbox = (
+  panel: HTMLDivElement,
+  labelText: string,
+  world: World,
+) => {
+  const row = document.createElement("label");
+  row.className = styles.checkboxRow;
+
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.className = styles.checkboxInput;
+
+  const label = document.createElement("span");
+  label.className = styles.checkboxLabel;
+  label.innerText = labelText;
+
+  // Initialize checkbox from Config
+  const config = world.getResource(Config);
+  input.checked = Boolean(config.skipTransparent);
+
+  // Toggle on change
+  input.onchange = () => {
+    config.skipTransparent = input.checked;
+  };
+
+  // Clicking the row toggles checkbox as well
+  row.onclick = (e) => {
+    // Avoid double toggling when clicking the checkbox itself
+    if ((e.target as HTMLElement).tagName.toLowerCase() === "input") return;
+    input.checked = !input.checked;
+    config.skipTransparent = input.checked;
+  };
+
+  row.appendChild(input);
+  row.appendChild(label);
+  panel.appendChild(row);
 };

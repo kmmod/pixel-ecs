@@ -95,3 +95,30 @@
     background-color: rgba(255, 255, 255, 0.06);
     border-color: rgba(255, 255, 255, 0.5);
 }
+
+/* Checkbox row */
+.checkboxRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    user-select: none;
+
+
+    background-color: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 5px;
+}
+
+.checkboxInput {
+    width: 16px;
+    height: 16px;
+    accent-color: white;
+}
+
+.checkboxLabel {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+}
