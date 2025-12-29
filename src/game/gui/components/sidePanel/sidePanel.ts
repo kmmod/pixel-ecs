@@ -1,6 +1,7 @@
 import styles from "./sidePanel.module.css";
 import type { World } from "@ecs/World.ts";
 import { RegenerateMessage } from "@game/puzzle/generate/generate.ts";
+import { FileMessage } from "@game/puzzle/puzzle.ts";
 
 let open = true;
 export const createSidePanel = (world: World): HTMLDivElement => {
@@ -8,10 +9,10 @@ export const createSidePanel = (world: World): HTMLDivElement => {
   panel.className = styles.sidePanel;
 
   createFoldButton(panel);
+  createDropZone(panel, world);
   createButton(panel, "Regenerate Puzzle", () => {
     world.getMessageWriter(RegenerateMessage).write({});
   });
-
   document.body.appendChild(panel);
   return panel;
 };
@@ -47,4 +48,71 @@ const createButton = (
   button.onclick = onClick;
   panel.appendChild(button);
   return button;
+};
+
+const createDropZone = (panel: HTMLDivElement, world: World) => {
+  const zone = document.createElement("div");
+  zone.className = styles.dropZone;
+  zone.innerText = "Drop image here or click to choose";
+
+  // Hidden input to support click-to-open
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = "image/*";
+  fileInput.style.display = "none";
+  fileInput.onchange = () => {
+    if (fileInput.files && fileInput.files.length > 0) {
+      handleFile(world, fileInput.files[0]);
+      fileInput.value = ""; // reset
+    }
+  };
+  panel.appendChild(fileInput);
+
+  // Drag & drop handlers
+  const onDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer!.dropEffect = "copy";
+    zone.classList.add(styles.dropZoneActive);
+  };
+
+  const onDragLeave = (_e: DragEvent) => {
+    zone.classList.remove(styles.dropZoneActive);
+  };
+
+  const onDrop = (e: DragEvent) => {
+    e.preventDefault();
+    zone.classList.remove(styles.dropZoneActive);
+    const dt = e.dataTransfer;
+    if (!dt) return;
+    const files = dt.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      handleFile(world, file);
+    }
+  };
+
+  zone.addEventListener("dragover", onDragOver);
+  zone.addEventListener("dragleave", onDragLeave);
+  zone.addEventListener("drop", onDrop);
+
+  // Click opens file picker
+  zone.onclick = () => fileInput.click();
+
+  panel.appendChild(zone);
+};
+
+const handleFile = (world: World, file: File) => {
+  if (!file.type.startsWith("image/")) {
+    console.warn("Dropped file is not an image:", file);
+    return;
+  }
+
+  // Create an object URL for the image file and send FileMessage
+  const url = URL.createObjectURL(file);
+  try {
+    world.getMessageWriter(FileMessage).write({ file: url });
+  } catch (err) {
+    console.error("Failed to write FileMessage:", err);
+    URL.revokeObjectURL(url);
+  }
 };

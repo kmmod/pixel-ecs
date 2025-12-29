@@ -64,3 +64,34 @@
 .actionButton:focus {
     outline: none;
 }
+
+/* Drop zone styles for adding an image file */
+.dropZone {
+    min-height: 80px;
+    padding: 10px;
+    margin-bottom: 10px;
+
+    border: 2px dashed rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+
+    color: rgba(255, 255, 255, 0.9);
+    background-color: rgba(255, 255, 255, 0.02);
+
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.dropZone:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+/* Active state while dragging */
+.dropZoneActive {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.5);
+}
