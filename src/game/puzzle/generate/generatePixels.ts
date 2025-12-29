@@ -8,6 +8,7 @@ import {
 } from "@game/puzzle/pixel.ts";
 import { Mesh, MeshBasicMaterial, PlaneGeometry } from "three";
 import { MeshRef, setMeshTag } from "@game/renderer/components.ts";
+import { Selectable } from "@game/puzzle/select.ts";
 
 export const PixelMesh = {
   PlaneOuter: "plane-outer",
@@ -37,7 +38,7 @@ export const spawnPixels = (world: World, pixels: PixelProps[]) => {
     setMeshTag(planeOuter, PixelMesh.PlaneOuter);
     setMeshTag(planeInner, PixelMesh.PlaneInner);
 
-    world.spawn(MeshRef({ mesh: planeOuter }), Pixel(pixel));
+    world.spawn(MeshRef({ mesh: planeOuter }), Pixel(pixel), Selectable());
   }
 };
 

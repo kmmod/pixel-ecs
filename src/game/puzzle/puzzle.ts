@@ -7,6 +7,7 @@ import { hoverAnimate, hoverAnimation, hoverPuzzle } from "./hover";
 import { generatePuzzle } from "./generate/generate.ts";
 import { handlePixelSelect, selectPuzzle } from "./select";
 import {
+  scaleAnimation,
   coordinateVisibility,
   initVisibility,
 } from "@game/puzzle/visibility.ts";
@@ -26,5 +27,5 @@ export const puzzleBundle = (world: World) => {
   world.addSystem(Update, generatePuzzle);
   world.addSystem(Update, [hoverPuzzle, hoverAnimate, hoverAnimation]);
   world.addSystem(Update, [selectPuzzle, handlePixelSelect]);
-  world.addSystem(Update, coordinateVisibility);
+  world.addSystem(Update, [coordinateVisibility, scaleAnimation]);
 };

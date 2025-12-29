@@ -7,6 +7,7 @@ export class App {
   private world: World;
   private running = false;
   private initialised = false;
+  // @ts-ignore
   private animationFrameId: number | null = null;
 
   constructor(world: World) {

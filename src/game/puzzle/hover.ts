@@ -5,7 +5,8 @@ import { getChildByTag, MeshRef } from "@game/renderer/components";
 import { RendererData } from "@game/renderer/renderer";
 import { Mesh } from "three";
 import { hoverScale, hoverSpeed, innerScale, Pixel } from "./pixel";
-import {PixelMesh} from "@game/puzzle/generate/generatePixels.ts";
+import { PixelMesh } from "@game/puzzle/generate/generatePixels.ts";
+import { Selectable } from "@game/puzzle/select.ts";
 
 export const Hovered = component(() => ({}));
 
@@ -23,7 +24,7 @@ export const hoverPuzzle = (world: World) => {
   const rendererData = world.getResource(RendererData);
   const raycastId = rendererData.raycastResult[0] ?? null;
 
-  const query = world.query(Entity, Pixel);
+  const query = world.query(Entity, Pixel, Selectable);
   for (const [entity] of query) {
     if (raycastId === entity) {
       world.entity(entity).insert(Hovered());

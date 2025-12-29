@@ -16,15 +16,15 @@
 import { component } from "@ecs/Registry";
 
 export type Cell = {
-  x: number; // Integer x coordinate in the grid, odd (1, 3, 5, ...)
-  y: number; // Integer y coordinate in the grid, odd (1, 3, 5, ...)
+  x: number; // Integer x
+  y: number; // Integer y
 };
 
 export interface PixelProps {
   cell: Cell; // Position of the pixel in the grid, int coordinates
   color: Hex; // Target color in hex format, e.g., "#ff0000"
-  value: number; // 0 or 1, representing desired state of the pixel
-  marked: boolean; // Whether the pixel is marked by the player
+  value: number; // 0 or 1, representing the desired state of the pixel
+  marked: boolean; // Whether the player has marked the pixel
 }
 
 export const Pixel = component((props: PixelProps) => props);
@@ -41,6 +41,9 @@ export type Hex = `#${string}`;
 
 export const isPixel = (x: number, y: number) => x % 2 === 1 && y % 2 === 1;
 
+export const isCoordinate = (x: number, y: number) =>
+  x % 2 === 0 && y % 2 === 0;
+
 export const rgbToHex = (r: number, g: number, b: number): Hex => {
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 };
@@ -56,3 +59,6 @@ export const diagonalOffsets = [
   { x: 1, y: -1 },
   { x: -1, y: -1 },
 ];
+
+export const pixelSolved = (pixel: PixelProps): boolean =>
+  (pixel.value === 1 && pixel.marked) || (pixel.value === 0 && !pixel.marked);

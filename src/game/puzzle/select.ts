@@ -1,6 +1,6 @@
 import type { MessageReader } from "@ecs/Message";
 import { Entity, type World } from "@ecs/World";
-import { message } from "@ecs/Registry";
+import { component, message } from "@ecs/Registry";
 import {
   PointerAction,
   PointerActionMessage,
@@ -29,12 +29,15 @@ import {
   errorCoordinateColor,
   solvedCoordinateColor,
 } from "@game/puzzle/generate/generateCoordinates.ts";
+import { Hovered } from "@game/puzzle/hover.ts";
 
 export interface PixelSelectMessageProps {
   entityId: number;
 }
 
 export const PixelSelectMessage = message<PixelSelectMessageProps>();
+
+export const Selectable = component(() => ({}));
 
 let pointerActionReader: MessageReader<PointerActionMessageProps> | null = null;
 let lastPixels: number[] = [];
@@ -50,8 +53,9 @@ export const selectPuzzle = (world: World) => {
   }
 
   const pixel = world.entity(raycastId).getMut(Pixel);
+  const isSelectable = world.entity(raycastId).has(Selectable);
 
-  if (pixel && lastPixels.indexOf(raycastId) === -1) {
+  if (pixel && isSelectable && lastPixels.indexOf(raycastId) === -1) {
     pixel.marked = !pixel.marked;
     lastPixels.push(raycastId);
     world.getMessageWriter(PixelSelectMessage).write({ entityId: raycastId });
@@ -142,6 +146,30 @@ const updateNeighbouringCoordinates = (
   });
 };
 
+const checkPuzzleSolved = (pixels: QueryPixel[]): boolean => {
+  return pixels.every(
+    ([_, p]) => (p.value === 1 && p.marked) || (p.value === 0 && !p.marked),
+  );
+};
+
+// Once puzzle is solved, remove Selectable from all pixels
+const updateSolvedState = (
+  pixels: QueryPixel[],
+  coordinates: QueryCoordinate[],
+  world: World,
+): void => {
+  const puzzleSolved = checkPuzzleSolved(pixels);
+  if (puzzleSolved) {
+    for (const [entity, _] of pixels) {
+      world.entity(entity).remove(Selectable);
+      world.entity(entity).remove(Hovered);
+    }
+    for (const [entity, _] of coordinates) {
+      world.entity(entity).despawn();
+    }
+  }
+};
+
 let pixelSelectReader: MessageReader<PixelSelectMessageProps> | null = null;
 export const handlePixelSelect = (world: World) => {
   pixelSelectReader ??= world.getMessageReader(PixelSelectMessage);
@@ -161,5 +189,6 @@ export const handlePixelSelect = (world: World) => {
 
     updatePixelMeshColor(meshRef, pixel.marked);
     updateNeighbouringCoordinates(pixel, pixels, coordinates, world);
+    updateSolvedState(pixels, coordinates, world);
   }
 };
