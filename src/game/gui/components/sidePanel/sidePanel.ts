@@ -14,7 +14,14 @@ export const createSidePanel = (world: World): HTMLDivElement => {
   createButton(panel, "Regenerate Puzzle", () => {
     world.getMessageWriter(RegenerateMessage).write({});
   });
-  createCheckbox(panel, "Skip transparent", world);
+  createCheckbox(
+    panel,
+    "Skip transparent",
+    world.getResource(Config).skipTransparent,
+    (checked) => {
+      world.getResource(Config).skipTransparent = checked;
+    },
+  );
   document.body.appendChild(panel);
   return panel;
 };
@@ -122,7 +129,8 @@ const handleFile = (world: World, file: File) => {
 const createCheckbox = (
   panel: HTMLDivElement,
   labelText: string,
-  world: World,
+  initState: boolean,
+  onChecked: (checked: boolean) => void,
 ) => {
   const row = document.createElement("label");
   row.className = styles.checkboxRow;
@@ -135,21 +143,9 @@ const createCheckbox = (
   label.className = styles.checkboxLabel;
   label.innerText = labelText;
 
-  // Initialize checkbox from Config
-  const config = world.getResource(Config);
-  input.checked = Boolean(config.skipTransparent);
-
-  // Toggle on change
+  input.checked = initState;
   input.onchange = () => {
-    config.skipTransparent = input.checked;
-  };
-
-  // Clicking the row toggles checkbox as well
-  row.onclick = (e) => {
-    // Avoid double toggling when clicking the checkbox itself
-    if ((e.target as HTMLElement).tagName.toLowerCase() === "input") return;
-    input.checked = !input.checked;
-    config.skipTransparent = input.checked;
+    onChecked(input.checked);
   };
 
   row.appendChild(input);
