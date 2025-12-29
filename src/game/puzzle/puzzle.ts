@@ -11,6 +11,7 @@ import {
   coordinateVisibility,
   initVisibility,
 } from "@game/puzzle/visibility.ts";
+import { solvePuzzle } from "@game/puzzle/solve.ts";
 
 export interface FileMessageProps {
   file: string;
@@ -25,6 +26,7 @@ const initPuzzle = (world: World) => {
 export const puzzleBundle = (world: World) => {
   world.addSystem(Startup, [initPuzzle, initVisibility]);
   world.addSystem(Update, [generatePuzzle, regeneratePuzzle]);
+  world.addSystem(Update, [solvePuzzle]);
   world.addSystem(Update, [hoverPuzzle, hoverAnimate, hoverAnimation]);
   world.addSystem(Update, [selectPuzzle, handlePixelSelect]);
   world.addSystem(Update, [coordinateVisibility, scaleAnimation]);

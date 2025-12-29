@@ -3,6 +3,7 @@ import type { World } from "@ecs/World.ts";
 import { RegenerateMessage } from "@game/puzzle/generate/generate.ts";
 import { FileMessage } from "@game/puzzle/puzzle.ts";
 import { Config } from "@game/globals/config.ts";
+import { SolveMessage } from "@game/puzzle/solve.ts";
 
 let open = true;
 export const createSidePanel = (world: World): HTMLDivElement => {
@@ -10,10 +11,17 @@ export const createSidePanel = (world: World): HTMLDivElement => {
   panel.className = styles.sidePanel;
 
   createFoldButton(panel);
+
   createDropZone(panel, world);
+
   createButton(panel, "Regenerate Puzzle", () => {
     world.getMessageWriter(RegenerateMessage).write({});
   });
+
+  createButton(panel, "Solve Puzzle", () => {
+    world.getMessageWriter(SolveMessage).write({});
+  });
+
   createCheckbox(
     panel,
     "Skip transparent",
@@ -22,6 +30,7 @@ export const createSidePanel = (world: World): HTMLDivElement => {
       world.getResource(Config).skipTransparent = checked;
     },
   );
+
   document.body.appendChild(panel);
   return panel;
 };
