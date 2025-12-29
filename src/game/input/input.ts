@@ -1,6 +1,7 @@
 import type { World } from "@ecs/World";
 import { message } from "@ecs/Registry";
 import { Startup } from "@ecs/Systems";
+import { RendererData } from "@game/renderer/renderer.ts";
 
 export const PointerButton = {
   None: "none",
@@ -24,8 +25,19 @@ export interface PointerActionMessageProps {
 
 export const PointerActionMessage = message<PointerActionMessageProps>();
 
+const isRendererTarget = (world: World, e: MouseEvent) => {
+  const { renderer } = world.getResource(RendererData);
+  const elementUnderCursor = document.elementFromPoint(e.clientX, e.clientY);
+  return (
+    renderer.domElement === e.target &&
+    (renderer.domElement === elementUnderCursor ||
+      renderer.domElement.contains(elementUnderCursor))
+  );
+};
+
 const setupEventListeners = (world: World) => {
   window.addEventListener("mousemove", (e) => {
+    if (!isRendererTarget(world, e)) return;
     const writer = world.getMessageWriter(PointerActionMessage);
     writer.write({
       pointerAction: PointerAction.None,
@@ -36,6 +48,7 @@ const setupEventListeners = (world: World) => {
   });
 
   window.addEventListener("mousedown", (e) => {
+    if (!isRendererTarget(world, e)) return;
     const writer = world.getMessageWriter(PointerActionMessage);
     writer.write({
       pointerAction: PointerAction.Down,
@@ -46,6 +59,7 @@ const setupEventListeners = (world: World) => {
   });
 
   window.addEventListener("mouseup", (e) => {
+    if (!isRendererTarget(world, e)) return;
     const writer = world.getMessageWriter(PointerActionMessage);
     writer.write({
       pointerAction: PointerAction.Up,

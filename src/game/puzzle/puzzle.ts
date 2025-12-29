@@ -4,7 +4,7 @@ import { Startup, Update } from "@ecs/Systems";
 
 import sprite from "/sprite-01.png";
 import { hoverAnimate, hoverAnimation, hoverPuzzle } from "./hover";
-import { generatePuzzle } from "./generate/generate.ts";
+import { generatePuzzle, regeneratePuzzle } from "./generate/generate.ts";
 import { handlePixelSelect, selectPuzzle } from "./select";
 import {
   scaleAnimation,
@@ -24,7 +24,7 @@ const initPuzzle = (world: World) => {
 
 export const puzzleBundle = (world: World) => {
   world.addSystem(Startup, [initPuzzle, initVisibility]);
-  world.addSystem(Update, generatePuzzle);
+  world.addSystem(Update, [generatePuzzle, regeneratePuzzle]);
   world.addSystem(Update, [hoverPuzzle, hoverAnimate, hoverAnimation]);
   world.addSystem(Update, [selectPuzzle, handlePixelSelect]);
   world.addSystem(Update, [coordinateVisibility, scaleAnimation]);
