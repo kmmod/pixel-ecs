@@ -1,0 +1,66 @@
+.sidePanel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 180px;
+    height: 100%;
+
+    padding: 10px;
+
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+
+    color: white;
+    transition: transform 0.3s ease-in-out;
+}
+
+.foldButton {
+    position: absolute;
+    top: 10px;
+    right: -30px;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+
+    background-color: rgba(0, 0, 0, 0.7);
+    border: none;
+    border-radius: 0 5px 5px 0;
+
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.foldButton:focus {
+    outline: none;
+}
+
+.actionButton {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+
+    background-color: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 5px;
+
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.actionButton:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.actionButton:focus {
+    outline: none;
+}
