@@ -84,7 +84,7 @@ export const generatePixels = (
         pixels.push(pixel);
       } else {
         const color = rgbToHex(r, g, b);
-        const value = r < 250 || g < 250 || b < 250 ? 1 : 0;
+        const value = r < 75 || g < 75 || b < 75 ? 1 : 0;
 
         const pixel: PixelProps = {
           cell: { x: xPos, y: yPos },

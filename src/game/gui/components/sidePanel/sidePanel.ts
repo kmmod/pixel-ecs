@@ -12,6 +12,22 @@ export const createSidePanel = (world: World): HTMLDivElement => {
 
   createFoldButton(panel);
 
+  const title = document.createElement("h3");
+  title.innerText = "Pixel mosaic";
+  panel.appendChild(title);
+
+  const p1 = document.createElement("p");
+  p1.innerText = "Create pixel art mosaics from images.";
+  panel.appendChild(p1);
+
+  const p2 = document.createElement("p");
+  p2.innerText = "Left click pixels to mark/unmark them.";
+  panel.appendChild(p2);
+
+  const p3 = document.createElement("p");
+  p3.innerText = "Use small 1bit images for best results.";
+  panel.appendChild(p3);
+
   createDropZone(panel, world);
 
   createButton(panel, "Regenerate Puzzle", () => {
@@ -43,7 +59,7 @@ const createFoldButton = (panel: HTMLDivElement): void => {
   button.innerText = foldLeft;
   button.onclick = () => {
     if (open) {
-      panel.style.transform = "translateX(-200px)";
+      panel.style.transform = "translateX(-220px)";
       button.innerText = foldRight;
       open = false;
     } else {
