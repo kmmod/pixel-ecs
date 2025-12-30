@@ -2,6 +2,8 @@
 
 A lightweight, TypeScript-first Entity Component System (ECS) framework designed for games and interactive applications. Built as a toy project to explore ECS patterns with a focus on ergonomics and type safety.
 
+Live demo of the included Pixel Puzzle Game: [https://pixel-ecs.neftlify.app](https://pixel-ecs.netlify.app)
+
 ## Features
 
 - **Archetype-based storage** for cache-friendly iteration
